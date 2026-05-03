@@ -14,7 +14,7 @@
 
 ### Shared backend runtime
 
-Everyone uses **Python 3.13.3** for the FastAPI app (see `.python-version` at repo root). Create a virtual environment per `setup_structure.sh` / `docs/CORE.md`; avoid mixing 3.11 or 3.12 on one machine and 3.13 on another.
+Everyone uses **Python 3.11.9** for the FastAPI app (see `.python-version` at repo root). Create a virtual environment per `setup_structure.sh` / `docs/CORE.md`; use exactly 3.11.9 everywhere — do not use 3.12, 3.13, or 3.14 with the pinned dependencies.
 
 ---
 

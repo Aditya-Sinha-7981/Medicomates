@@ -38,7 +38,7 @@ Two design decisions that judges won't have seen before:
 | Frontend | React + Vite | Patient and doctor dashboards |
 | Styling | Tailwind CSS | All styling, no custom CSS files |
 | Frontend Deploy | Vercel | Free, instant deploys from GitHub |
-| Backend | FastAPI (Python 3.13.3) | API server, scheduler, all logic |
+| Backend | FastAPI (Python 3.11.9) | API server, scheduler, all logic |
 | Backend Deploy | Railway | Free tier, persistent process for scheduler |
 | Database + Auth | Supabase (Postgres) | All data storage and user authentication |
 | Scheduler | APScheduler (inside FastAPI) | Sends reminder emails at scheduled times |

@@ -679,7 +679,7 @@ pillow==10.3.0              # image processing before sending to Gemini
 | Rule | Why |
 |---|---|
 | Use `pathlib.Path` for ALL file paths | Windows uses `\`, Mac uses `/` |
-| Everyone uses **Python 3.13.3** exactly | Same interpreter on Mac and Windows; avoids subtle dependency conflicts |
+| Everyone uses **Python 3.11.9** exactly | Same interpreter on Mac and Windows; avoids subtle dependency conflicts |
 | Everyone uses a **virtual environment** | No global pip installs |
 | `requirements.txt` has **pinned versions** | Same env everywhere |
 | Set `SCHEDULER_TIMEZONE=Asia/Kolkata` explicitly | Default UTC will send reminders at wrong times in India |
@@ -796,3 +796,5 @@ Practice this exact flow. Aim for under 4 minutes.
 | Token reuse attack | `token_used = true` after first click. Second click shows "already confirmed" page. |
 | Supabase RLS blocks queries | Disable RLS during development. Enable and test RLS rules in the last 3 days before demo. |
 | Reminder fires at wrong time (UTC vs IST) | Set `SCHEDULER_TIMEZONE=Asia/Kolkata` from day one. Test with a 2-minute reminder in dev. |
+| Wrong Python version | Project requires exactly Python 3.11.9 via pyenv. Run `pyenv install 3.11.9` then `pyenv local 3.11.9` inside the backend folder. Verify with `python --version` before creating venv. |
+| Supabase SDK expects legacy JWT keys | In Supabase dashboard go to Project Settings → API → scroll to Legacy API keys — copy the service_role key (eyJ... format) into `backend/.env` as `SUPABASE_SERVICE_KEY` and the anon key into `frontend/.env` as `VITE_SUPABASE_ANON_KEY`. The new sb_secret_ format will throw Invalid API key error. |
