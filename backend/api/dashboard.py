@@ -1,4 +1,8 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter
+
+from services.insight_service import generate_insight
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -21,7 +25,15 @@ async def get_doctor_dashboard(doctor_id: str):
     return {"profile": {}, "patients": []}
 
 
+def _utc_iso_z() -> str:
+    return (
+        datetime.now(timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+
 @router.get("/insight/{patient_id}")
 async def get_insight(patient_id: str):
-    _ = patient_id
-    return {"insight": "Insight generation not wired yet", "generated_at": None}
+    text = await generate_insight(patient_id)
+    return {"insight": text, "generated_at": _utc_iso_z()}
