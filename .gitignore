@@ -1,0 +1,26 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.env
+**/*.pyc
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# Never commit
+.env
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+#Logs
+logs/

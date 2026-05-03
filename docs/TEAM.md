@@ -12,6 +12,10 @@
 | Frontend 2 | Windows (vibe coder) | Doctor side — doctor dashboard, patient profile, insight card, notes thread, visit timeline |
 | Person 5 | Windows (can do frontend) | PPT + pitch deck + demo script. Overflow: reviewer dashboard UI, confirm-taken page polish |
 
+### Shared backend runtime
+
+Everyone uses **Python 3.13.3** for the FastAPI app (see `.python-version` at repo root). Create a virtual environment per `setup_structure.sh` / `docs/CORE.md`; avoid mixing 3.11 or 3.12 on one machine and 3.13 on another.
+
 ---
 
 ## The Core Split Logic

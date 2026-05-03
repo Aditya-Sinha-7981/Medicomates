@@ -1,0 +1,2 @@
+# Bash setup must use LF so Git Bash / WSL on Windows do not hit $'\r' errors
+*.sh text eol=lf

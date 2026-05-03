@@ -13,6 +13,11 @@ A three-sided medication adherence web app for elderly patients, their doctors, 
 
 **Why this wins:** Most reminder apps serve one person. Ours serves three simultaneously. The AI layer is not a chatbot — it's a clinical insight card that gives doctors real behavioral data about their patients. That's a defensible, non-gimmicky use of AI.
 
+**What makes us non-generic — every team member must understand this:**
+Two design decisions that judges won't have seen before:
+1. **No login to confirm medicine.** Every other app makes elderly users open an app and navigate. We send an email with one button. The UX is designed around who actually uses this product.
+2. **The AI talks to the doctor, not the patient.** Every other "AI health app" chatbots the patient. We deliberately chose not to. Our AI augments the clinical relationship — it gives the doctor behavioral insight they can act on. That is a different design philosophy, not just a feature addition. Lead with this in the pitch.
+
 ---
 
 ## The 4 USPs — Memorise These
@@ -33,7 +38,7 @@ A three-sided medication adherence web app for elderly patients, their doctors, 
 | Frontend | React + Vite | Patient and doctor dashboards |
 | Styling | Tailwind CSS | All styling, no custom CSS files |
 | Frontend Deploy | Vercel | Free, instant deploys from GitHub |
-| Backend | FastAPI (Python 3.11) | API server, scheduler, all logic |
+| Backend | FastAPI (Python 3.13.3) | API server, scheduler, all logic |
 | Backend Deploy | Railway | Free tier, persistent process for scheduler |
 | Database + Auth | Supabase (Postgres) | All data storage and user authentication |
 | Scheduler | APScheduler (inside FastAPI) | Sends reminder emails at scheduled times |
@@ -141,7 +146,8 @@ VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 ```
 
-During development: `VITE_API_URL=http://localhost:8000` (mock server or real backend via ngrok)
+During development (mock server): `VITE_API_URL=http://localhost:8001`
+During development (real backend via ngrok): `VITE_API_URL=https://abc123.ngrok.io`
 On Vercel: set `VITE_API_URL` to the Railway backend URL
 
 ---

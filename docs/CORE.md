@@ -655,6 +655,7 @@ resend==0.7.0
 httpx==0.27.0
 aiofiles==23.2.1
 pydantic==2.7.0
+pydantic-settings==2.2.1
 pillow==10.3.0              # image processing before sending to Gemini
 ```
 
@@ -678,7 +679,7 @@ pillow==10.3.0              # image processing before sending to Gemini
 | Rule | Why |
 |---|---|
 | Use `pathlib.Path` for ALL file paths | Windows uses `\`, Mac uses `/` |
-| Everyone uses **Python 3.11** exactly | Avoids subtle dependency conflicts |
+| Everyone uses **Python 3.13.3** exactly | Same interpreter on Mac and Windows; avoids subtle dependency conflicts |
 | Everyone uses a **virtual environment** | No global pip installs |
 | `requirements.txt` has **pinned versions** | Same env everywhere |
 | Set `SCHEDULER_TIMEZONE=Asia/Kolkata` explicitly | Default UTC will send reminders at wrong times in India |
