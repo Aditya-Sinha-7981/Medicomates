@@ -2,7 +2,7 @@
 # MedAdhere — Project Structure Setup
 # Run ONCE from the repo root after cloning.
 # Usage: bash setup_structure.sh
-# Windows: use Git Bash or WSL (not cmd.exe). Python: 3.13.3 (see .python-version).
+# Windows: use Git Bash or WSL (not cmd.exe). Python: 3.11.9 (see .python-version).
 
 echo "Creating MedAdhere project structure..."
 
@@ -258,7 +258,7 @@ echo "  ✓ logs/ created (gitignored, personal scratch space)"
 echo ""
 echo "Done. Read your section in TEAM.md before touching any file."
 echo ""
-echo "  LEAD:        Use Python 3.13.3 (pyenv/asdf: see .python-version)"
+echo "  LEAD:        Use Python 3.11.9 (pyenv/asdf: see .python-version)"
 echo "               Fill in backend/.env — Supabase, Gemini, Resend keys"
 echo "               cd backend && python -m venv venv"
 echo "               Mac:     source venv/bin/activate"
