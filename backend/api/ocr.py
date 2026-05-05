@@ -41,9 +41,9 @@ async def extract_ocr(image: UploadFile = File(...)):
         )
 
     meds = await extract_prescription_data(raw, mime_type=mime)
-    if isinstance(medics, dict):
-        meds = [medics]
-    if not isinstance(medics, list):
+    if isinstance(meds, dict):
+        meds = [meds]
+    if not isinstance(meds, list):
         return []
 
     allowed = {"name", "dosage", "frequency", "reminder_times", "notes"}
