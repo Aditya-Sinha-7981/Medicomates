@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: Inter, "Segoe UI", Roboto, system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background-color: #f3f6fb;
+}
