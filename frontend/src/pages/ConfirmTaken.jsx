@@ -4,7 +4,6 @@ import AuthLayout from "../components/layout/AuthLayout";
 export default function ConfirmTaken() {
   const [searchParams] = useSearchParams();
   const status = searchParams.get("status");
-  const medicine = searchParams.get("medicine");
   const isSuccess = status === "success";
 
   return (
@@ -15,8 +14,7 @@ export default function ConfirmTaken() {
             <div className="mb-4 text-6xl">✅</div>
             <h1 className="text-3xl font-semibold text-emerald-700">Dose Confirmed</h1>
             <p className="mt-3 text-slate-700">
-              Great job! Keep it up.
-              {medicine ? ` (${medicine})` : ""}
+              Great job! Keep it up. Your dose has been recorded.
             </p>
           </>
         ) : (

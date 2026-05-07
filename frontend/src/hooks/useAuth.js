@@ -17,7 +17,7 @@ export default function useAuth() {
     setLoading(true);
     setError("");
     try {
-      const loggedInUser = authLogin(formData.email, formData.password);
+      const loggedInUser = await authLogin(formData.email, formData.password);
       setUser(loggedInUser);
       navigate(loggedInUser.role === "doctor" ? "/doctor" : "/patient");
     } catch (err) {
@@ -31,7 +31,7 @@ export default function useAuth() {
     setLoading(true);
     setError("");
     try {
-      registerUser(formData);
+      await registerUser(formData);
       navigate("/login");
     } catch (err) {
       setError(err.message || "Registration failed");

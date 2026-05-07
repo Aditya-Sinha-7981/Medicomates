@@ -1,7 +1,17 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getAuthToken, getCurrentUser } from "../utils/auth";
 
 export default function Splash() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = getAuthToken();
+    const user = getCurrentUser();
+    if (token && user) {
+      navigate(user.role === "doctor" ? "/doctor" : "/patient", { replace: true });
+    }
+  }, [navigate]);
 
   return (
     <main className="min-h-screen bg-[#e9eef7] relative overflow-hidden">
