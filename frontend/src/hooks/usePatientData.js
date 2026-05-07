@@ -18,6 +18,10 @@ const getTimestampForDose = (dateKey, time) => new Date(`${dateKey}T${time}:00`)
 
 const readMedicines = () => safeParse(localStorage.getItem(MEDICINES_KEY), []);
 const readDoseLogs = () => safeParse(localStorage.getItem(DOSE_LOGS_KEY), []);
+const writeMedicines = (medicines) =>
+  localStorage.setItem(MEDICINES_KEY, JSON.stringify(medicines));
+const writeDoseLogs = (doseLogs) =>
+  localStorage.setItem(DOSE_LOGS_KEY, JSON.stringify(doseLogs));
 
 const resolveDoseStatus = ({ logEntry, scheduledDate, isToday }) => {
   if (logEntry?.status === "taken") return "taken";
@@ -48,7 +52,9 @@ export default function usePatientData() {
     }
 
     try {
-      const medicines = readMedicines().filter((medicine) => medicine.patient_id === user.id);
+      const medicines = readMedicines().filter(
+        (medicine) => medicine.patient_id === user.id && medicine.is_active !== false
+      );
       const doseLogs = readDoseLogs().filter((log) => log.patient_id === user.id);
 
       const now = new Date();
@@ -78,6 +84,7 @@ export default function usePatientData() {
           dosage: medicine.dosage,
           frequency: medicine.frequency,
           reminder_times: medicine.reminder_times || [],
+          is_active: medicine.is_active !== false,
           statuses,
         };
       });
@@ -170,7 +177,46 @@ export default function usePatientData() {
         doseLogs.push(nextEntry);
       }
 
-      localStorage.setItem(DOSE_LOGS_KEY, JSON.stringify(doseLogs));
+      writeDoseLogs(doseLogs);
+      loadData();
+    },
+    [loadData]
+  );
+
+  const markDoseUntaken = useCallback(
+    (medicineId, time) => {
+      const user = getCurrentUser();
+      if (!user) return;
+
+      const doseLogs = readDoseLogs().filter(
+        (log) =>
+          !(
+            log.patient_id === user.id &&
+            log.medicine_id === medicineId &&
+            log.date === getDateKey(new Date()) &&
+            log.time === time
+          )
+      );
+      writeDoseLogs(doseLogs);
+      loadData();
+    },
+    [loadData]
+  );
+
+  const cancelMedicine = useCallback(
+    (medicineId) => {
+      const user = getCurrentUser();
+      if (!user) return;
+
+      const medicines = readMedicines();
+      const updatedMedicines = medicines.map((medicine) => {
+        if (medicine.id === medicineId && medicine.patient_id === user.id) {
+          return { ...medicine, is_active: false };
+        }
+        return medicine;
+      });
+
+      writeMedicines(updatedMedicines);
       loadData();
     },
     [loadData]
@@ -182,5 +228,7 @@ export default function usePatientData() {
     error,
     refresh: loadData,
     markDoseTaken,
+    markDoseUntaken,
+    cancelMedicine,
   };
 }

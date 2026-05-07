@@ -1,44 +1,50 @@
-import BottomNav from "../components/BottomNav";
+import AppShell from "../components/layout/AppShell";
 import useAuth from "../hooks/useAuth";
 import { getCurrentUser } from "../utils/auth";
+import { Mail, Shield } from "lucide-react";
 
 export default function Profile() {
   const { logout } = useAuth();
   const user = getCurrentUser();
 
   return (
-    <main className="min-h-screen bg-[#f3f6fb] pb-24 md:pb-0 md:pl-24 font-sans text-slate-800">
-      <div className="w-full max-w-3xl mx-auto p-4 md:p-8">
-        <section className="bg-white rounded-3xl border border-[#e2e8f0] shadow-sm p-6 md:p-8">
-          <h1 className="m-0 text-3xl font-extrabold text-slate-800">Profile</h1>
-          <p className="text-gray-500 mt-2">Your account information</p>
+    <AppShell title="Profile" subtitle="Your account details">
+      <div className="max-w-3xl">
+        <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-900">Personal Information</h2>
+          <p className="mt-1 text-sm text-slate-500">Used for dashboard personalization.</p>
 
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-[#f8fafc] rounded-xl border border-[#e2e8f0] p-4">
-              <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Name</div>
-              <div className="text-lg font-bold text-slate-800 mt-1">
+          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Name</p>
+              <p className="mt-1 text-base font-semibold text-slate-800">
                 {user?.full_name || user?.name || "-"}
-              </div>
+              </p>
             </div>
-            <div className="bg-[#f8fafc] rounded-xl border border-[#e2e8f0] p-4">
-              <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Email</div>
-              <div className="text-lg font-bold text-slate-800 mt-1">{user?.email || "-"}</div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500 flex items-center gap-1">
+                <Mail className="h-3.5 w-3.5" />
+                Email
+              </p>
+              <p className="mt-1 text-base font-semibold text-slate-800">{user?.email || "-"}</p>
             </div>
-            <div className="bg-[#f8fafc] rounded-xl border border-[#e2e8f0] p-4">
-              <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Role</div>
-              <div className="text-lg font-bold text-slate-800 mt-1">{user?.role || "-"}</div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500 flex items-center gap-1">
+                <Shield className="h-3.5 w-3.5" />
+                Role
+              </p>
+              <p className="mt-1 text-base font-semibold text-slate-800 capitalize">{user?.role || "-"}</p>
             </div>
           </div>
 
           <button
             onClick={logout}
-            className="mt-8 h-12 rounded-xl px-6 bg-[#2a79e8] text-white font-bold hover:bg-blue-700 transition-colors"
+            className="mt-8 rounded-full bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
           >
             Logout
           </button>
         </section>
       </div>
-      <BottomNav />
-    </main>
+    </AppShell>
   );
 }
