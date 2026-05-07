@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
-import { HeartPulse, LogOut, Sparkles, UserPlus2, ClipboardList } from "lucide-react";
+import { HeartPulse, LogOut, Sparkles, UserPlus2, ClipboardList, Flame } from "lucide-react";
 import AdherenceCalendar from "../components/AdherenceCalendar";
 import MedicineCard from "../components/MedicineCard";
 import useAuth from "../hooks/useAuth";
@@ -144,6 +144,12 @@ export default function PatientDashboard() {
                   <h1 className="mt-1 text-2xl md:text-3xl font-semibold tracking-tight">
                     Good to see you, {dashboard?.profile?.full_name || "patient"}
                   </h1>
+                  {dashboard?.profile?.allergies ? (
+                    <p className="mt-2 text-xs md:text-sm text-sky-100/90">
+                      Allergies:{" "}
+                      <span className="font-medium text-sky-50">{dashboard.profile.allergies}</span>
+                    </p>
+                  ) : null}
                   <p className="mt-1 flex items-center gap-2 text-xs md:text-sm text-sky-50/90">
                     <HeartPulse className="h-4 w-4" />
                     <span>
@@ -167,7 +173,7 @@ export default function PatientDashboard() {
             </div>
           </motion.header>
 
-          <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <motion.div
               className="rounded-3xl border border-slate-100 bg-white/80 p-4 md:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.08)]"
               initial={{ opacity: 0, y: 10 }}
@@ -182,7 +188,7 @@ export default function PatientDashboard() {
                 </span>
               </div>
               <p className="mt-2 text-[11px] text-slate-400">
-                Based on all doses taken vs. scheduled in the last 30 days.
+                From your dashboard summary (this week vs. scheduled doses).
               </p>
             </motion.div>
 
@@ -205,16 +211,46 @@ export default function PatientDashboard() {
             </motion.div>
 
             <motion.div
+              className="rounded-3xl border border-amber-100 bg-amber-50/80 p-4 md:p-5 shadow-[0_14px_40px_rgba(180,83,9,0.12)]"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-800/80 flex items-center gap-1.5">
+                <Flame className="h-3.5 w-3.5" />
+                Streak
+              </p>
+              <div className="mt-2 flex items-end gap-2 text-amber-950">
+                <span className="text-3xl font-semibold">
+                  {dashboard?.streak?.current ?? 0}
+                </span>
+                <span className="text-sm font-medium text-amber-800/90 pb-1">
+                  best {dashboard?.streak?.best ?? 0}
+                </span>
+              </div>
+              <p className="mt-2 text-[11px] text-amber-900/80">
+                Consecutive days with all scheduled doses confirmed.
+              </p>
+            </motion.div>
+
+            <motion.div
               className="rounded-3xl border border-slate-100 bg-white/80 p-4 md:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)]"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Today&apos;s focus
+                Last week
               </p>
-              <p className="mt-2 text-sm text-slate-700">
-                Stay close to your usual routine. If a time doesn’t work anymore, update your
-                schedule so reminders feel natural.
+              <div className="mt-2 flex items-end gap-2">
+                <span className="text-3xl font-semibold text-slate-900">
+                  {dashboard?.last_week_percentage ?? 0}%
+                </span>
+              </div>
+              <p className="mt-2 text-sm text-slate-600">
+                Compare with this week&apos;s{" "}
+                <span className="font-semibold text-slate-800">
+                  {dashboard?.weekly_percentage ?? 0}%
+                </span>{" "}
+                to spot trends early.
               </p>
             </motion.div>
           </section>

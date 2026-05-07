@@ -1,3 +1,14 @@
+# MedicoMates frontend
+
+## API base URL
+
+All requests use `import.meta.env.VITE_API_URL` (see [`.env.example`](./.env.example)).
+
+- **Mock server (default for local dev):** `http://localhost:8001` — run `uvicorn mock_server:app --reload --port 8001` from the repo `mock_api/` folder.
+- **Real backend:** set `VITE_API_URL` to your FastAPI URL (e.g. `http://localhost:8000` or your Railway URL). No other code changes are required.
+
+---
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

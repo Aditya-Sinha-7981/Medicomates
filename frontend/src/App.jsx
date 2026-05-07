@@ -9,10 +9,22 @@ import PatientProfile from "./pages/PatientProfile";
 import Profile from "./pages/Profile";
 import Register from "./pages/Register";
 import Splash from "./pages/Splash";
+import { getAuthToken, getCurrentUser } from "./utils/auth";
 
-function ProtectedRoute({ children }) {
-  const user = localStorage.getItem("medicomates_user");
-  if (!user) return <Navigate to="/login" replace />;
+function ProtectedRoute({ children, requiredRole }) {
+  const token = getAuthToken();
+  const user = getCurrentUser();
+  if (!token || !user) {
+    return <Navigate to="/login" replace />;
+  }
+  if (requiredRole && user.role !== requiredRole) {
+    return (
+      <Navigate
+        to={user.role === "doctor" ? "/doctor" : "/patient"}
+        replace
+      />
+    );
+  }
   return children;
 }
 
@@ -28,7 +40,7 @@ export default function App() {
         <Route
           path="/patient"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="patient">
               <PatientDashboard />
             </ProtectedRoute>
           }
@@ -36,7 +48,7 @@ export default function App() {
         <Route
           path="/medicines"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="patient">
               <MedicineForm />
             </ProtectedRoute>
           }
@@ -44,7 +56,7 @@ export default function App() {
         <Route
           path="/medicine/new"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="patient">
               <MedicineForm />
             </ProtectedRoute>
           }
@@ -52,7 +64,7 @@ export default function App() {
         <Route
           path="/notes"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="patient">
               <Notes />
             </ProtectedRoute>
           }
@@ -68,7 +80,7 @@ export default function App() {
         <Route
           path="/doctor"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="doctor">
               <DoctorDashboard />
             </ProtectedRoute>
           }
@@ -76,7 +88,7 @@ export default function App() {
         <Route
           path="/patient-profile/:patientId"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute requiredRole="doctor">
               <PatientProfile />
             </ProtectedRoute>
           }
