@@ -10,8 +10,8 @@ const STATUS_COLORS = {
 function computeDayStatus(logsByDay, dateKey) {
   const dayLogs = logsByDay.get(dateKey) || [];
   if (!dayLogs.length) {
-    const isFuture = new Date(dateKey) > new Date();
-    return isFuture ? "pending" : "missed";
+    // No scheduled logs for this day should stay neutral (grey), not missed.
+    return "pending";
   }
   if (dayLogs.some((log) => log.status === "missed")) return "missed";
   if (dayLogs.every((log) => log.status === "taken")) return "taken";

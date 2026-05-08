@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import AppShell from "../components/layout/AppShell";
 
@@ -21,12 +20,8 @@ export default function PatientProfile() {
 
   const patient = users.find((entry) => entry.id === patientId);
 
-  const patientMeds = useMemo(
-    () =>
-      medicines.filter(
-        (medicine) => medicine.patient_id === patientId && medicine.is_active !== false
-      ),
-    [medicines, patientId]
+  const patientMeds = medicines.filter(
+    (medicine) => medicine.patient_id === patientId && medicine.is_active !== false
   );
 
   const todayKey = getDateKey(new Date());

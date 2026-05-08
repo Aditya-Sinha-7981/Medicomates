@@ -5,6 +5,9 @@ import { motion } from "framer-motion";
 import AppShell from "../components/layout/AppShell";
 import { getCurrentUser } from "../utils/auth";
 import { api, endpoints } from "../services/api.js";
+import { useToast } from "../components/ui/ToastContext";
+
+const LOCAL_MEDICINES_KEY = "medicomates_local_medicines";
 
 const defaultForm = {
   patient_id: "",
@@ -26,6 +29,19 @@ const normalizeTimeValue = (t) => {
   if (!t || typeof t !== "string") return "08:00";
   return t.length >= 5 ? t.slice(0, 5) : t;
 };
+
+const safeParse = (value, fallback) => {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+};
+
+const readLocalMedicines = () => safeParse(localStorage.getItem(LOCAL_MEDICINES_KEY), []);
+const writeLocalMedicines = (entries) =>
+  localStorage.setItem(LOCAL_MEDICINES_KEY, JSON.stringify(entries));
 
 function buildInitialForm(editMedicine, user) {
   if (editMedicine) {
@@ -49,6 +65,7 @@ function buildInitialForm(editMedicine, user) {
 export default function MedicineForm() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [error, setError] = useState("");
@@ -107,8 +124,20 @@ export default function MedicineForm() {
             ? first.reminder_times.map(normalizeTimeValue)
             : prev.reminder_times,
       }));
+      showToast({
+        message: "Prescription details extracted. Please review before saving.",
+        variant: "success",
+      });
     } catch (err) {
-      setError(err.message || "OCR failed");
+      const msg =
+        err?.message?.includes("PDF")
+          ? "PDF upload is not available yet. Please upload a JPG or PNG image."
+          : err.message || "OCR failed";
+      setError(msg);
+      showToast({
+        message: msg,
+        variant: "error",
+      });
     } finally {
       setOcrLoading(false);
     }
@@ -126,12 +155,26 @@ export default function MedicineForm() {
       }
 
       const patientId = formData.patient_id || user.id;
+      const normalizedTimes = formData.reminder_times
+        .map(normalizeTimeValue)
+        .filter(Boolean);
+      const hasDuplicateTimes = new Set(normalizedTimes).size !== normalizedTimes.length;
+      if (!normalizedTimes.length) {
+        throw new Error("Please add at least one reminder time.");
+      }
+      if (hasDuplicateTimes) {
+        throw new Error("Reminder times must be unique.");
+      }
+      if (formData.start_date && formData.end_date && formData.end_date < formData.start_date) {
+        throw new Error("End date cannot be earlier than start date.");
+      }
+
       const body = {
         patient_id: patientId,
         name: formData.name.trim(),
         dosage: formData.dosage.trim(),
         frequency: formData.frequency.trim(),
-        reminder_times: formData.reminder_times.map(normalizeTimeValue),
+        reminder_times: normalizedTimes,
         start_date: formData.start_date || null,
         end_date: formData.end_date?.trim() ? formData.end_date.trim() : null,
         notes: formData.notes?.trim() ? formData.notes.trim() : null,
@@ -140,13 +183,31 @@ export default function MedicineForm() {
       if (isEdit) {
         const medicineId = editMedicine.medicine_id || editMedicine.id;
         await api.put(endpoints.medicines.update(medicineId), body);
+        const local = readLocalMedicines();
+        const next = local.filter((m) => m.id !== medicineId);
+        next.push({ ...editMedicine, ...body, id: medicineId, is_active: true });
+        writeLocalMedicines(next);
       } else {
-        await api.post(endpoints.medicines.create(), body);
+        const created = await api.post(endpoints.medicines.create(), body);
+        const local = readLocalMedicines();
+        const createdId =
+          created?.id || `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const next = local.filter((m) => m.id !== createdId);
+        next.push({ ...body, id: createdId, is_active: true });
+        writeLocalMedicines(next);
       }
 
+      showToast({
+        message: isEdit ? "Medicine updated successfully." : "Medicine added successfully.",
+        variant: "success",
+      });
       navigate("/patient");
     } catch (err) {
       setError(err.message || "Failed to save medicine");
+      showToast({
+        message: err.message || "Failed to save medicine",
+        variant: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -190,13 +251,12 @@ export default function MedicineForm() {
                 <div>
                   <p className="text-sm font-semibold text-slate-900">Prescription OCR</p>
                   <p className="text-xs text-slate-600">
-                    JPG, PNG, or PDF (max 10MB). Results are prefilled only — always confirm before
-                    saving.
+                    JPG or PNG (max 10MB). Results are prefilled only — always confirm before saving.
                   </p>
                 </div>
               </div>
               <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-sky-700 shadow-sm hover:bg-sky-50">
-                <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleOcrFile} />
+                <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={handleOcrFile} />
                 {ocrLoading ? "Reading…" : "Upload prescription"}
               </label>
             </div>

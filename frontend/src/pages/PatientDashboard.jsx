@@ -16,6 +16,7 @@ export default function PatientDashboard() {
   const { logout } = useAuth();
   const {
     dashboard,
+    medicines,
     doctors,
     visits,
     adherenceLogs,
@@ -90,16 +91,24 @@ export default function PatientDashboard() {
       .slice(0, 2)
       .join("") || "PT";
 
-  const handleConfirmCancel = () => {
+  const handleConfirmCancel = async () => {
     if (!cancelTarget) return;
     setIsCancelling(true);
-    cancelMedicine(cancelTarget.id);
-    setIsCancelling(false);
-    setCancelTarget(null);
-    showToast({
-      message: "Medicine cancelled for future reminders.",
-      variant: "success",
-    });
+    try {
+      await cancelMedicine(cancelTarget.id);
+      setCancelTarget(null);
+      showToast({
+        message: "Medicine cancelled for future reminders.",
+        variant: "success",
+      });
+    } catch (err) {
+      showToast({
+        message: err.message || "Failed to cancel medicine.",
+        variant: "error",
+      });
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   const handleUntakeConfirmed = () => {
@@ -288,10 +297,24 @@ export default function PatientDashboard() {
                       <MedicineCard
                         key={medicine.medicine_id}
                         medicine={medicine}
-                        onMarkTaken={markDoseTaken}
+                        onMarkTaken={(medicineId, time) => {
+                          markDoseTaken(medicineId, time);
+                          showToast({
+                            message: "Dose marked as taken.",
+                            variant: "success",
+                          });
+                        }}
                         onToggleTaken={(medicineId, time) =>
                           setUntakeTarget({ medicineId, time, name: medicine.name })
                         }
+                        onEdit={() => {
+                          const fullMedicine = (medicines || []).find(
+                            (entry) => entry.id === medicine.medicine_id
+                          );
+                          navigate("/medicines", {
+                            state: { medicine: fullMedicine || medicine },
+                          });
+                        }}
                         onCancel={() =>
                           setCancelTarget({ id: medicine.medicine_id, name: medicine.name })
                         }
@@ -325,7 +348,7 @@ export default function PatientDashboard() {
                         className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/60 px-3.5 py-3"
                       >
                         <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-sky-100 text-sm font-semibold text-sky-700">
-                          {doctor.full_name.charAt(0)}
+                          {(doctor.full_name || "D").charAt(0)}
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-slate-800">
@@ -333,7 +356,9 @@ export default function PatientDashboard() {
                           </p>
                           <p className="text-[11px] text-slate-500">
                             Connected since{" "}
-                            {new Date(doctor.connected_at).toLocaleDateString()}
+                            {doctor.connected_at
+                              ? new Date(doctor.connected_at).toLocaleDateString()
+                              : "recently"}
                           </p>
                         </div>
                       </li>
