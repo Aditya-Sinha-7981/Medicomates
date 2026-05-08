@@ -20,6 +20,7 @@ export default function MedicineCard({
   medicine,
   onMarkTaken,
   onToggleTaken,
+  onEdit,
   onCancel,
   isCancelling,
 }) {
@@ -91,6 +92,13 @@ export default function MedicineCard({
           </div>
         </div>
         <div className="flex flex-col items-end gap-2">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="rounded-full border border-slate-200 px-3 py-1 text-[11px] font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+          >
+            Edit
+          </button>
           <button
             type="button"
             onClick={onCancel}
