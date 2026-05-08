@@ -356,7 +356,9 @@ export default function PatientDashboard() {
                           </p>
                           <p className="text-[11px] text-slate-500">
                             Connected since{" "}
-                            {new Date(doctor.connected_at).toLocaleDateString()}
+                            {doctor.connected_at
+                              ? new Date(doctor.connected_at).toLocaleDateString()
+                              : "recently"}
                           </p>
                         </div>
                       </li>

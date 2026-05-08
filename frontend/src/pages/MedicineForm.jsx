@@ -129,9 +129,13 @@ export default function MedicineForm() {
         variant: "success",
       });
     } catch (err) {
-      setError(err.message || "OCR failed");
+      const msg =
+        err?.message?.includes("PDF")
+          ? "PDF upload is not available yet. Please upload a JPG or PNG image."
+          : err.message || "OCR failed";
+      setError(msg);
       showToast({
-        message: err.message || "OCR failed",
+        message: msg,
         variant: "error",
       });
     } finally {
@@ -247,13 +251,12 @@ export default function MedicineForm() {
                 <div>
                   <p className="text-sm font-semibold text-slate-900">Prescription OCR</p>
                   <p className="text-xs text-slate-600">
-                    JPG, PNG, or PDF (max 10MB). Results are prefilled only — always confirm before
-                    saving.
+                    JPG or PNG (max 10MB). Results are prefilled only — always confirm before saving.
                   </p>
                 </div>
               </div>
               <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-sky-700 shadow-sm hover:bg-sky-50">
-                <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleOcrFile} />
+                <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={handleOcrFile} />
                 {ocrLoading ? "Reading…" : "Upload prescription"}
               </label>
             </div>
