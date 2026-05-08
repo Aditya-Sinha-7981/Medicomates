@@ -76,6 +76,29 @@ function mergeMedicinesForPatient(patientId, apiMedicines) {
   return Array.from(byId.values());
 }
 
+function normalizeDoctors(rawDoctors) {
+  if (!Array.isArray(rawDoctors)) return [];
+  return rawDoctors
+    .filter((entry) => entry && entry.doctor_id)
+    .map((entry) => ({
+      ...entry,
+      full_name: entry.full_name || "Doctor",
+      connected_at: entry.connected_at || null,
+    }));
+}
+
+function normalizeVisits(rawVisits) {
+  if (!Array.isArray(rawVisits)) return [];
+  return rawVisits
+    .filter((visit) => visit && visit.id)
+    .map((visit) => ({
+      ...visit,
+      doctor_name: visit.doctor_name || "Care team",
+      summary: visit.summary || "Visit activity recorded",
+      visit_date: visit.visit_date || new Date().toISOString(),
+    }));
+}
+
 function applyDashboardOverlay(dashboard, patientId) {
   if (!dashboard) return dashboard;
   const overlay = readOverlay().filter((o) => o.patient_id === patientId);
@@ -260,10 +283,12 @@ export default function usePatientData() {
       const dashboardRaw = dashboardRes.value;
       const medicinesApi = medicinesRes.status === "fulfilled" ? medicinesRes.value : [];
       const medicines = mergeMedicinesForPatient(patientId, medicinesApi);
-      const doctors = doctorsRes.status === "fulfilled" ? doctorsRes.value : [];
-      const visits = visitsRes.status === "fulfilled" ? visitsRes.value : [];
+      const doctorsRaw = doctorsRes.status === "fulfilled" ? doctorsRes.value : [];
+      const visitsRaw = visitsRes.status === "fulfilled" ? visitsRes.value : [];
       const adherenceLogsRaw =
         adherenceRes.status === "fulfilled" ? adherenceRes.value : [];
+      const doctors = normalizeDoctors(doctorsRaw);
+      const visits = normalizeVisits(visitsRaw);
 
       const dashboardWithOverlay = applyDashboardOverlay(dashboardRaw, patientId);
       const dashboard = mergeTodaysScheduleFromMedicines(
@@ -279,8 +304,8 @@ export default function usePatientData() {
       setData({
         dashboard,
         medicines: Array.isArray(medicines) ? medicines : [],
-        doctors: Array.isArray(doctors) ? doctors : [],
-        visits: Array.isArray(visits) ? visits : [],
+        doctors,
+        visits,
         adherenceLogs,
       });
     } catch (err) {
