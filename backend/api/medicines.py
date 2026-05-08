@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from models.schemas import MedicineSchema, MedicineUpdateSchema
 from services.scheduler_service import (
@@ -8,12 +8,13 @@ from services.scheduler_service import (
 )
 from utils.supabase_client import supabase
 from utils.visits import log_visit
+from utils.auth import get_current_user
 
 router = APIRouter(prefix="/medicines", tags=["medicines"])
 
 
 @router.get("/{patient_id}")
-async def get_medicines(patient_id: str):
+async def get_medicines(patient_id: str, current_user: dict = Depends(get_current_user)):
     result = (
         supabase.table("medicines")
         .select("*")
@@ -26,7 +27,7 @@ async def get_medicines(patient_id: str):
 
 
 @router.post("")
-async def add_medicine(data: MedicineSchema):
+async def add_medicine(data: MedicineSchema, current_user: dict = Depends(get_current_user)):
     payload = {
         "patient_id": data.patient_id,
         "name": data.name,
@@ -56,7 +57,9 @@ async def add_medicine(data: MedicineSchema):
 
 
 @router.put("/{medicine_id}")
-async def update_medicine(medicine_id: str, data: MedicineUpdateSchema):
+async def update_medicine(
+    medicine_id: str, data: MedicineUpdateSchema, current_user: dict = Depends(get_current_user)
+):
     update_payload = data.model_dump(exclude_none=True)
     if "start_date" in update_payload and data.start_date:
         update_payload["start_date"] = data.start_date.isoformat()
@@ -81,7 +84,7 @@ async def update_medicine(medicine_id: str, data: MedicineUpdateSchema):
 
 
 @router.delete("/{medicine_id}")
-async def deactivate_medicine(medicine_id: str):
+async def deactivate_medicine(medicine_id: str, current_user: dict = Depends(get_current_user)):
     unschedule_medicine(medicine_id)
     supabase.table("medicines").update({"is_active": False}).eq("id", medicine_id).execute()
     return {"message": "Medicine deactivated"}

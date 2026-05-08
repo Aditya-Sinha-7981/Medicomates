@@ -57,3 +57,8 @@ class NoteSchema(BaseModel):
     patient_id: str
     doctor_id: str
     message: str = Field(min_length=1)
+
+
+class NoteReadSchema(BaseModel):
+    patient_id: str
+    doctor_id: str

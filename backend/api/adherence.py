@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import RedirectResponse
 
 from config import settings
 from utils.adherence_stats import calculate_percentage, compute_status
+from utils.auth import get_current_user
 from utils.supabase_client import supabase
 from utils.token import validate_token
 
@@ -28,7 +29,9 @@ async def confirm_taken(token: str):
 
 
 @router.get("/{patient_id}")
-async def get_adherence_logs(patient_id: str, days: int = 30):
+async def get_adherence_logs(
+    patient_id: str, days: int = 30, current_user: dict = Depends(get_current_user)
+):
     safe_days = max(1, days)
     cutoff = (datetime.now(timezone.utc) - timedelta(days=safe_days)).isoformat()
 
@@ -60,7 +63,9 @@ async def get_adherence_logs(patient_id: str, days: int = 30):
 
 
 @router.get("/{patient_id}/summary")
-async def get_adherence_summary(patient_id: str):
+async def get_adherence_summary(
+    patient_id: str, current_user: dict = Depends(get_current_user)
+):
     cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
 
     logs_result = (
