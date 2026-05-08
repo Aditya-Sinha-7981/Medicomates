@@ -1,17 +1,18 @@
 from datetime import datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from config import settings
 from services.insight_service import generate_insight
 from utils.adherence_stats import calculate_streak, calculate_time_window_percentage, compute_status
+from utils.auth import get_current_user
 from utils.supabase_client import supabase
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 @router.get("/patient/{patient_id}")
-async def get_patient_dashboard(patient_id: str):
+async def get_patient_dashboard(patient_id: str, current_user: dict = Depends(get_current_user)):
     # 1. Profile
     profile_result = supabase.table("profiles").select("full_name, allergies").eq("id", patient_id).execute()
     profile = profile_result.data[0] if profile_result.data else {}
@@ -108,7 +109,7 @@ async def get_patient_dashboard(patient_id: str):
 
 
 @router.get("/doctor/{doctor_id}")
-async def get_doctor_dashboard(doctor_id: str):
+async def get_doctor_dashboard(doctor_id: str, current_user: dict = Depends(get_current_user)):
     profile_result = supabase.table("profiles").select("full_name").eq("id", doctor_id).execute()
     profile = profile_result.data[0] if profile_result.data else {}
 
@@ -147,6 +148,6 @@ def _utc_iso_z() -> str:
 
 
 @router.get("/insight/{patient_id}")
-async def get_insight(patient_id: str):
+async def get_insight(patient_id: str, current_user: dict = Depends(get_current_user)):
     text = await generate_insight(patient_id)
     return {"insight": text, "generated_at": _utc_iso_z()}

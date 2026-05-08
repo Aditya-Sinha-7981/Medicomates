@@ -1,9 +1,17 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from models.schemas import LoginSchema, RegisterSchema
+from utils.auth import get_current_user
 from utils.supabase_client import supabase
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.get("/me")
+async def get_me(current_user: dict = Depends(get_current_user)):
+    """Quick token validation endpoint. Use this first when debugging 401s.
+    If this works, your token and header format are correct."""
+    return current_user
 
 
 @router.post("/register")

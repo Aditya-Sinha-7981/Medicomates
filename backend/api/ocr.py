@@ -1,6 +1,7 @@
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from services.gemini_service import extract_prescription_data
+from utils.auth import get_current_user
 
 router = APIRouter(prefix="/ocr", tags=["ocr"])
 
@@ -21,7 +22,9 @@ def _mime_for_upload(upload: UploadFile) -> str:
 
 
 @router.post("")
-async def extract_ocr(image: UploadFile = File(...)):
+async def extract_ocr(
+    image: UploadFile = File(...), current_user: dict = Depends(get_current_user)
+):
     raw = await image.read()
     if len(raw) > _MAX_BYTES:
         raise HTTPException(status_code=413, detail="Image must be at most 10MB")

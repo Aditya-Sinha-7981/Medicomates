@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api import adherence, auth, connections, dashboard, medicines, notes, ocr
+from api import adherence, auth, connections, dashboard, medicines, notes, ocr, visits
 from config import settings
 from scheduler import start_scheduler, shutdown_scheduler
 from services.scheduler_service import reschedule_all_active_medicines
@@ -40,3 +40,4 @@ app.include_router(notes.router, prefix="/api")
 app.include_router(connections.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(ocr.router, prefix="/api")
+app.include_router(visits.router, prefix="/api")
