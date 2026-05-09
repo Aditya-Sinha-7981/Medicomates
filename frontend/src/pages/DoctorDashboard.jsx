@@ -1,80 +1,109 @@
-import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AppShell from "../components/layout/AppShell";
-import { getCurrentUser } from "../utils/auth";
-
-const safeParse = (value, fallback) => {
-  if (!value) return fallback;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
-};
-
-const getDateKey = (date) => date.toISOString().slice(0, 10);
+import { getCurrentUser, logout } from "../utils/auth";
+import { api, endpoints } from "../services/api.js";
+import PatientListCard from "../components/PatientListCard";
 
 export default function DoctorDashboard() {
   const user = getCurrentUser();
-  const users = safeParse(localStorage.getItem("medicomates_users"), []);
-  const medicines = safeParse(localStorage.getItem("medicomates_medicines"), []);
-  const doseLogs = safeParse(localStorage.getItem("medicomates_dose_logs"), []);
+  const navigate = useNavigate();
+  const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const patients = users.filter((entry) => entry.role === "patient");
-  const todayKey = getDateKey(new Date());
+  // 1. Authentication & Role Check Guard
+  useEffect(() => {
+    if (!user) {
+      navigate("/login", { replace: true });
+      return;
+    }
+    if (user.role !== "doctor") {
+      navigate("/patient", { replace: true });
+      return;
+    }
+  }, [user, navigate]);
 
-  const patientStats = useMemo(
-    () =>
-      patients.map((patient) => {
-        const patientMeds = medicines.filter(
-          (medicine) => medicine.patient_id === patient.id && medicine.is_active !== false
-        );
-        const totalToday = patientMeds.reduce(
-          (sum, med) => sum + (med.reminder_times?.length || 0),
-          0
-        );
-        const takenToday = doseLogs.filter(
-          (log) =>
-            log.patient_id === patient.id && log.date === todayKey && log.status === "taken"
-        ).length;
-        const adherence = totalToday ? Math.round((takenToday / totalToday) * 100) : 0;
-        return { ...patient, adherence, totalToday, takenToday };
-      }),
-    [doseLogs, medicines, patients, todayKey]
-  );
+  // 2. Data Fetching with Cleanup
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!user?.id) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError("");
+      try {
+        const dashboard = await api.get(endpoints.dashboard.doctor(user.id));
+        const rows = Array.isArray(dashboard?.patients) ? dashboard.patients : [];
+        if (!cancelled) setPatients(rows);
+      } catch (err) {
+        if (!cancelled) setError(err.message || "Failed to load doctor dashboard.");
+        
+        // Safety catch: If token is expired (401), force log out
+        if (err.message.includes("401") || err.message.includes("403")) {
+          logout();
+          navigate("/login", { replace: true });
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, navigate]);
+
+  // 3. Logout Handler
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  // Prevent UI flash while redirecting unauthorized users
+  if (!user || user.role !== "doctor") return null;
 
   return (
-    <AppShell title={`Dr. ${user?.full_name || "Dashboard"}`} subtitle="Patient adherence overview">
+    <AppShell title="Doctor Panel" subtitle="Patient adherence overview">
+      
+      {/* Top Banner with Sign Out Button */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-sm gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-slate-800">
+            Welcome, {user?.full_name || "Doctor"}
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">Review your patients' progress today.</p>
+        </div>
+        
+        <button 
+          onClick={handleLogout}
+          className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-rose-600"
+        >
+          Sign out
+        </button>
+      </div>
+
       <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-900">Patients</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Real-time adherence snapshot based on today&apos;s logged doses.
+          Real-time adherence snapshot based on today's logged doses.
         </p>
-
-        {patientStats.length ? (
+        
+        {error ? <p className="mt-4 text-sm text-rose-600">{error}</p> : null}
+        
+        {loading ? (
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500 text-center animate-pulse">
+            Loading patient data...
+          </div>
+        ) : patients.length ? (
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {patientStats.map((patient) => (
-              <div key={patient.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold text-slate-800">{patient.full_name}</p>
-                  <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
-                    {patient.adherence}%
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-slate-500">
-                  {patient.takenToday}/{patient.totalToday} doses taken today
-                </p>
-                <Link
-                  to={`/patient-profile/${patient.id}`}
-                  className="mt-3 inline-flex rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
-                >
-                  View profile
-                </Link>
-              </div>
+            {patients.map((patient) => (
+              <PatientListCard key={patient.patient_id} patient={patient} />
             ))}
           </div>
         ) : (
-          <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+          <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500 text-center">
             No patient accounts available yet.
           </div>
         )}
@@ -82,4 +111,3 @@ export default function DoctorDashboard() {
     </AppShell>
   );
 }
-

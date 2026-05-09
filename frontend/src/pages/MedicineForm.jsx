@@ -43,10 +43,10 @@ const readLocalMedicines = () => safeParse(localStorage.getItem(LOCAL_MEDICINES_
 const writeLocalMedicines = (entries) =>
   localStorage.setItem(LOCAL_MEDICINES_KEY, JSON.stringify(entries));
 
-function buildInitialForm(editMedicine, user) {
+function buildInitialForm(editMedicine, user, patientIdFromState) {
   if (editMedicine) {
     return {
-      patient_id: user?.id || editMedicine.patient_id || "",
+      patient_id: patientIdFromState || editMedicine.patient_id || user?.id || "",
       name: editMedicine.name || "",
       dosage: editMedicine.dosage || "",
       frequency: editMedicine.frequency || "",
@@ -59,7 +59,7 @@ function buildInitialForm(editMedicine, user) {
       end_date: editMedicine.end_date || "",
     };
   }
-  return { ...defaultForm, patient_id: user?.id || "" };
+  return { ...defaultForm, patient_id: patientIdFromState || user?.id || "" };
 }
 
 export default function MedicineForm() {
@@ -72,9 +72,12 @@ export default function MedicineForm() {
 
   const editMedicine = location.state?.medicine || null;
   const isEdit = !!editMedicine;
+  const doctorMode = Boolean(location.state?.doctorMode);
+  const returnTo = location.state?.returnTo || "/patient";
+  const patientIdFromState = location.state?.patientId || "";
 
   const [formData, setFormData] = useState(() =>
-    buildInitialForm(editMedicine, getCurrentUser())
+    buildInitialForm(editMedicine, getCurrentUser(), patientIdFromState)
   );
 
   const handleChange = (e) => {
@@ -154,7 +157,7 @@ export default function MedicineForm() {
         throw new Error("Please log in again");
       }
 
-      const patientId = formData.patient_id || user.id;
+      const patientId = patientIdFromState || formData.patient_id || user.id;
       const normalizedTimes = formData.reminder_times
         .map(normalizeTimeValue)
         .filter(Boolean);
@@ -178,6 +181,7 @@ export default function MedicineForm() {
         start_date: formData.start_date || null,
         end_date: formData.end_date?.trim() ? formData.end_date.trim() : null,
         notes: formData.notes?.trim() ? formData.notes.trim() : null,
+        doctor_id: doctorMode && user.role === "doctor" ? user.id : null,
       };
 
       if (isEdit) {
@@ -201,7 +205,7 @@ export default function MedicineForm() {
         message: isEdit ? "Medicine updated successfully." : "Medicine added successfully.",
         variant: "success",
       });
-      navigate("/patient");
+      navigate(returnTo);
     } catch (err) {
       setError(err.message || "Failed to save medicine");
       showToast({
@@ -235,7 +239,7 @@ export default function MedicineForm() {
             </div>
             <button
               type="button"
-              onClick={() => navigate("/patient")}
+              onClick={() => navigate(returnTo)}
               className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50/60 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
             >
               Back to dashboard

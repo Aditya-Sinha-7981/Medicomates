@@ -1,31 +1,50 @@
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Send } from "lucide-react";
 import AppShell from "../components/layout/AppShell";
 import { getCurrentUser } from "../utils/auth";
 import { api, endpoints } from "../services/api.js";
+import NoteThread from "../components/NoteThread";
 
 export default function Notes() {
+  const [searchParams] = useSearchParams();
   const currentUser = getCurrentUser();
-  const patientId = currentUser?.id;
+  const isDoctor = currentUser?.role === "doctor";
+  const currentUserId = currentUser?.id;
+  const initialPatientId = searchParams.get("patientId") || "";
+  const initialDoctorId = searchParams.get("doctorId") || "";
 
-  const [doctors, setDoctors] = useState([]);
-  const [doctorId, setDoctorId] = useState("");
+  const [counterparts, setCounterparts] = useState([]);
+  const [patientId, setPatientId] = useState(isDoctor ? initialPatientId : currentUserId || "");
+  const [doctorId, setDoctorId] = useState(isDoctor ? currentUserId || initialDoctorId : "");
   const [notes, setNotes] = useState([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
 
-  const loadDoctors = useCallback(async () => {
-    if (!patientId) return;
-    const list = await api.get(endpoints.connections.doctorsForPatient(patientId));
+  const loadCounterparts = useCallback(async () => {
+    if (!currentUserId) return;
+    if (isDoctor) {
+      const list = await api.get(endpoints.connections.patientsForDoctor(currentUserId));
+      const arr = Array.isArray(list) ? list : [];
+      setCounterparts(arr);
+      setPatientId((prev) => {
+        if (prev && arr.some((p) => p.patient_id === prev)) return prev;
+        return arr[0]?.patient_id || "";
+      });
+      setDoctorId(currentUserId);
+      return;
+    }
+    const list = await api.get(endpoints.connections.doctorsForPatient(currentUserId));
     const arr = Array.isArray(list) ? list : [];
-    setDoctors(arr);
+    setCounterparts(arr);
+    setPatientId(currentUserId);
     setDoctorId((prev) => {
       if (prev && arr.some((d) => d.doctor_id === prev)) return prev;
       return arr[0]?.doctor_id || "";
     });
-  }, [patientId]);
+  }, [currentUserId, isDoctor]);
 
   const loadThread = useCallback(async () => {
     if (!patientId || !doctorId) {
@@ -48,16 +67,16 @@ export default function Notes() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!patientId) {
+      if (!currentUserId) {
         setLoading(false);
         return;
       }
       setLoading(true);
       setError("");
       try {
-        await loadDoctors();
+        await loadCounterparts();
       } catch (e) {
-        if (!cancelled) setError(e.message || "Failed to load doctors");
+        if (!cancelled) setError(e.message || "Failed to load connected users");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -65,7 +84,7 @@ export default function Notes() {
     return () => {
       cancelled = true;
     };
-  }, [patientId, loadDoctors]);
+  }, [currentUserId, loadCounterparts]);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,10 +122,10 @@ export default function Notes() {
     }
   };
 
-  if (!patientId) {
+  if (!currentUserId) {
     return (
       <AppShell title="Notes" subtitle="Secure async communication with your care team">
-        <p className="text-sm text-slate-600">Please sign in as a patient to use notes.</p>
+        <p className="text-sm text-slate-600">Please sign in to use notes.</p>
       </AppShell>
     );
   }
@@ -115,24 +134,37 @@ export default function Notes() {
     <AppShell title="Notes" subtitle="Secure async communication with your care team">
       <div className="grid gap-5 lg:grid-cols-3">
         <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm lg:col-span-1">
-          <h2 className="text-sm font-semibold text-slate-900">Doctor</h2>
+          <h2 className="text-sm font-semibold text-slate-900">
+            {isDoctor ? "Patient" : "Doctor"}
+          </h2>
           {loading ? (
             <p className="mt-3 text-sm text-slate-500">Loading…</p>
-          ) : doctors.length ? (
+          ) : counterparts.length ? (
             <select
               className="mt-3 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700"
-              value={doctorId}
-              onChange={(e) => setDoctorId(e.target.value)}
+              value={isDoctor ? patientId : doctorId}
+              onChange={(e) => {
+                if (isDoctor) {
+                  setPatientId(e.target.value);
+                } else {
+                  setDoctorId(e.target.value);
+                }
+              }}
             >
-              {doctors.map((doctor) => (
-                <option key={doctor.doctor_id} value={doctor.doctor_id}>
-                  {doctor.full_name}
+              {counterparts.map((entry) => (
+                <option
+                  key={isDoctor ? entry.patient_id : entry.doctor_id}
+                  value={isDoctor ? entry.patient_id : entry.doctor_id}
+                >
+                  {entry.full_name}
                 </option>
               ))}
             </select>
           ) : (
             <p className="mt-3 text-sm text-slate-500">
-              No connected doctors yet. Ask your care team to connect your account.
+              {isDoctor
+                ? "No connected patients yet."
+                : "No connected doctors yet. Ask your care team to connect your account."}
             </p>
           )}
         </section>
@@ -142,31 +174,19 @@ export default function Notes() {
           {error ? (
             <p className="mt-2 text-sm text-rose-600">{error}</p>
           ) : null}
-          <div className="mt-4 h-[320px] overflow-y-auto rounded-xl border border-slate-100 bg-slate-50 p-3">
+          <div className="mt-4">
             {!doctorId ? (
-              <p className="text-sm text-slate-500">Select a connected doctor to view messages.</p>
-            ) : notes.length ? (
-              <div className="space-y-2.5">
-                {notes.map((note) => (
-                  <div
-                    key={note.id}
-                    className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
-                      note.sender_role === currentUser?.role
-                        ? "ml-auto bg-blue-600 text-white"
-                        : "bg-white border border-slate-200 text-slate-700"
-                    }`}
-                  >
-                    <p>{note.message}</p>
-                    <p className="mt-1 text-[10px] opacity-80">
-                      {new Date(note.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                ))}
-              </div>
+              <p className="text-sm text-slate-500">Select a conversation to view messages.</p>
             ) : (
-              <p className="text-sm text-slate-500">
-                No notes yet. Start with a quick update for your doctor.
-              </p>
+              <NoteThread
+                notes={notes}
+                currentRole={currentUser?.role}
+                otherPartyName={
+                  counterparts.find((entry) =>
+                    isDoctor ? entry.patient_id === patientId : entry.doctor_id === doctorId
+                  )?.full_name
+                }
+              />
             )}
           </div>
 

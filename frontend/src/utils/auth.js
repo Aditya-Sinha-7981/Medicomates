@@ -59,15 +59,18 @@ export async function registerUser(form) {
 /**
  * @returns {Promise<{ id: string, full_name: string, name: string, email: string, role: string }>}
  */
-export async function login(email, password) {
+// CHANGE 1: Added 'role' as a parameter (with a default fallback of "patient")
+export async function login(email, password, role = "patient") {
   const normalizedEmail = email.trim();
   const res = await fetch(`${BASE_URL}${endpoints.auth.login()}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: normalizedEmail, password }),
+    // CHANGE 2: Added 'role' to the body being sent to the server
+    body: JSON.stringify({ email: normalizedEmail, password, role }),
   });
   const data = await parseJsonResponse(res);
   const sessionUser = toSessionUser(data, normalizedEmail);
+  
   localStorage.setItem(AUTH_TOKEN_KEY, data.access_token);
   localStorage.setItem(AUTH_KEY, JSON.stringify(sessionUser));
   return sessionUser;

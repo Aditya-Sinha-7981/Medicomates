@@ -48,7 +48,7 @@ export default function App() {
         <Route
           path="/medicines"
           element={
-            <ProtectedRoute requiredRole="patient">
+            <ProtectedRoute>
               <MedicineForm />
             </ProtectedRoute>
           }
@@ -56,7 +56,7 @@ export default function App() {
         <Route
           path="/medicine/new"
           element={
-            <ProtectedRoute requiredRole="patient">
+            <ProtectedRoute>
               <MedicineForm />
             </ProtectedRoute>
           }
@@ -64,7 +64,7 @@ export default function App() {
         <Route
           path="/notes"
           element={
-            <ProtectedRoute requiredRole="patient">
+            <ProtectedRoute>
               <Notes />
             </ProtectedRoute>
           }
@@ -86,7 +86,7 @@ export default function App() {
           }
         />
         <Route
-          path="/patient-profile/:patientId"
+          path="/patient/:patientId"
           element={
             <ProtectedRoute requiredRole="doctor">
               <PatientProfile />
