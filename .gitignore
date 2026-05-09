@@ -1,33 +1,27 @@
-# --- Environment & Virtual Envs ---
-venv/
-**/venv/
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.env
+**/*.pyc
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# Never commit
 .env
 *.env
-.python-version
-.cache/
 
-# --- Python ---
-__pycache__/
-**/__pycache__/
-**/*.pyc
-.pytest_cache/
-# Specific to your structure
-backend/.env
-
-# --- Node / Frontend ---
-node_modules/
-**/node_modules/
-frontend/dist/
-frontend/build/
-frontend/.env*
-
-# --- IDE & Editors ---
-.vscode/
-.idea/
-.cursor/
-
-# --- OS & Logs ---
+# OS
 .DS_Store
 Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+#Logs
 logs/
-*.log
+.cursor/
