@@ -1,4 +1,5 @@
 import HealthcareLogo from "../branding/HealthcareLogo";
+import PageTransition from "./PageTransition";
 
 export default function AuthLayout({ children }) {
   return (
@@ -29,7 +30,7 @@ export default function AuthLayout({ children }) {
             <p className="text-xs text-slate-400">Designed for clarity, consistency, and trust.</p>
           </section>
           <section className="rounded-[28px] border border-slate-100 bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.10)] md:col-start-2 md:p-8">
-            {children}
+            <PageTransition>{children}</PageTransition>
           </section>
         </div>
       </div>

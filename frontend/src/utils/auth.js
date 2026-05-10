@@ -101,6 +101,7 @@ export async function login(email, password, role = "patient") {
 export function logout() {
   localStorage.removeItem(AUTH_KEY);
   localStorage.removeItem(AUTH_TOKEN_KEY);
+  sessionStorage.removeItem("hasSeenBrandIntro");
 }
 
 export function getAuthToken() {

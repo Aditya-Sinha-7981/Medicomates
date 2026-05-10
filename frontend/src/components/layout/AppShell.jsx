@@ -1,6 +1,8 @@
 import { CalendarDays, Home, MessageCircle, Pill, UserCircle2 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { motion } from "framer-motion";
 import HealthcareLogo from "../branding/HealthcareLogo";
+import PageTransition from "./PageTransition";
 
 const navItems = [
   { to: "/patient", label: "Dashboard", icon: Home },
@@ -38,8 +40,10 @@ export default function AppShell({ title, subtitle, actions, children }) {
                     }`
                   }
                 >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex items-center gap-3 w-full">
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </motion.div>
                 </NavLink>
               );
             })}
@@ -82,7 +86,7 @@ export default function AppShell({ title, subtitle, actions, children }) {
             {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
           </header>
         )}
-        {children}
+        <PageTransition>{children}</PageTransition>
       </div>
     </div>
   );
