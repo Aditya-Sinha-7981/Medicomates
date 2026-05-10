@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 
 Role = Literal["patient", "doctor"]
+ConnectionRequestType = Literal["doctor_patient", "reviewer"]
 
 
 class RegisterSchema(BaseModel):
@@ -69,3 +70,8 @@ class MarkDoseSchema(BaseModel):
     medicine_id: str
     time: str = Field(min_length=4)  # "HH:MM"
     taken: bool
+
+
+class ConnectionRequestSchema(BaseModel):
+    to_email: str
+    type: ConnectionRequestType

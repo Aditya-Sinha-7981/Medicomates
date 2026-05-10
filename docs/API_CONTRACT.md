@@ -250,50 +250,85 @@ Note: Any field can be null if Gemini could not read it clearly.
 
 ## Connection Endpoints
 
-### Connect a doctor to a patient
+### Search for user before request
 ```
-POST /api/connections/doctor
+GET /api/connections/search?email={email}&type={type}
+[Protected]
+type: 'doctor_patient' | 'reviewer'
+
+Response 200:
+{
+  "user_id": "uuid",
+  "full_name": "string",
+  "role": "patient"
+}
+```
+
+### Send connection request
+```
+POST /api/connections/request
 [Protected]
 Content-Type: application/json
 
 Body:
 {
-  "patient_id": "uuid",
-  "doctor_id": "uuid"
+  "to_email": "string",
+  "type": "doctor_patient" | "reviewer"
 }
 
 Response 200:
 {
-  "message": "Connection established"
-}
-
-Response 400:
-{
-  "error": "Connection already exists"
+  "message": "Request sent.",
+  "to_name": "string"
 }
 ```
 
-### Add a reviewer (patient adds another patient as reviewer)
+### Get incoming requests
 ```
-POST /api/connections/reviewer
+GET /api/connections/requests/incoming
 [Protected]
-Content-Type: application/json
 
-Body:
-{
-  "patient_id": "uuid",
-  "reviewer_email": "string"
-}
+Response 200:
+[
+  {
+    "id": "uuid",
+    "type": "doctor_patient" | "reviewer",
+    "from_id": "uuid",
+    "from_name": "string",
+    "from_role": "string",
+    "patient_id": "uuid",
+    "created_at": "ISO"
+  }
+]
+```
+
+### Get outgoing requests
+```
+GET /api/connections/requests/outgoing
+[Protected]
+
+Response 200:
+[
+  {
+    "id": "uuid",
+    "type": "string",
+    "to_id": "uuid",
+    "to_name": "string",
+    "patient_id": "uuid",
+    "created_at": "ISO"
+  }
+]
+```
+
+### Accept / Reject request
+```
+PUT /api/connections/requests/{request_id}/accept
+PUT /api/connections/requests/{request_id}/reject
+[Protected]
 
 Response 200:
 {
-  "message": "Reviewer added",
-  "reviewer_name": "string"
-}
-
-Response 404:
-{
-  "error": "No patient account found with that email"
+  "message": "Request accepted."
 }
 ```
 
