@@ -2,11 +2,12 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
-import { HeartPulse, LogOut, Sparkles, UserPlus2, ClipboardList, Flame } from "lucide-react";
+import { HeartPulse, LogOut, Sparkles, UserPlus2, ClipboardList, Flame, CheckCircle2, XCircle, Clock, Eye, Search } from "lucide-react";
 import AdherenceCalendar from "../components/AdherenceCalendar";
 import MedicineCard from "../components/MedicineCard";
 import useAuth from "../hooks/useAuth";
 import usePatientData from "../hooks/usePatientData";
+import { api, endpoints } from "../services/api.js";
 import { Modal } from "../components/ui/Modal";
 import { useToast } from "../components/ui/ToastContext";
 import AppShell from "../components/layout/AppShell";
@@ -26,12 +27,22 @@ export default function PatientDashboard() {
     markDoseTaken,
     markDoseUntaken,
     cancelMedicine,
+    incomingRequests,
+    outgoingRequests,
+    reviewers,
+    reviewing,
   } = usePatientData();
   const { showToast } = useToast();
 
   const [cancelTarget, setCancelTarget] = useState(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [untakeTarget, setUntakeTarget] = useState(null);
+
+  const [searchEmail, setSearchEmail] = useState("");
+  const [searchResult, setSearchResult] = useState(null);
+  const [searchError, setSearchError] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [sendingRequest, setSendingRequest] = useState(false);
 
   const recentVisits = useMemo(() => (visits || []).slice(0, 3), [visits]);
   const todayDoseCount = useMemo(
@@ -108,6 +119,61 @@ export default function PatientDashboard() {
       });
     } finally {
       setIsCancelling(false);
+    }
+  };
+
+  const handleAcceptRequest = async (id) => {
+    try {
+      await api.put(endpoints.connections.acceptRequest(id));
+      showToast({ message: "Request accepted.", variant: "success" });
+      refresh();
+    } catch (err) {
+      showToast({ message: err.message || "Failed to accept request.", variant: "error" });
+    }
+  };
+
+  const handleRejectRequest = async (id) => {
+    try {
+      await api.put(endpoints.connections.rejectRequest(id));
+      showToast({ message: "Request rejected.", variant: "success" });
+      refresh();
+    } catch (err) {
+      showToast({ message: err.message || "Failed to reject request.", variant: "error" });
+    }
+  };
+
+  const handleSearchReviewer = async (e) => {
+    e.preventDefault();
+    if (!searchEmail.trim()) return;
+    setIsSearching(true);
+    setSearchError("");
+    setSearchResult(null);
+    try {
+      const res = await api.get(endpoints.connections.search(searchEmail.trim(), "reviewer"));
+      setSearchResult(res);
+    } catch (err) {
+      setSearchError(err.message || "User not found or cannot be added.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSendReviewerRequest = async () => {
+    if (!searchResult) return;
+    setSendingRequest(true);
+    try {
+      await api.post(endpoints.connections.request(), {
+        to_email: searchEmail.trim(),
+        type: "reviewer"
+      });
+      setSearchResult(null);
+      setSearchEmail("");
+      showToast({ message: "Reviewer request sent.", variant: "success" });
+      refresh();
+    } catch (err) {
+      setSearchError(err.message || "Failed to send request.");
+    } finally {
+      setSendingRequest(false);
     }
   };
 
@@ -337,10 +403,60 @@ export default function PatientDashboard() {
               </section>
 
               <section className="rounded-3xl border border-slate-100 bg-white/80 p-4 md:p-5 shadow-[0_18px_50px_rgba(15,23,42,0.06)]">
+                <h2 className="mb-3 text-sm md:text-base font-semibold text-slate-900 flex items-center gap-2">
+                  Pending Requests
+                  {incomingRequests?.length > 0 && (
+                    <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-600">
+                      {incomingRequests.length}
+                    </span>
+                  )}
+                </h2>
+                {incomingRequests?.length > 0 ? (
+                  <ul className="space-y-3">
+                    {incomingRequests.map((req) => (
+                      <li
+                        key={req.id}
+                        className="flex flex-col gap-3 rounded-2xl border border-amber-100 bg-amber-50/50 p-3"
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">
+                            {req.from_name}
+                          </p>
+                          <p className="text-[11px] text-slate-500">
+                            Wants to connect as your {req.type === "doctor_patient" ? "doctor" : "reviewer"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleAcceptRequest(req.id)}
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => handleRejectRequest(req.id)}
+                            className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                            Decline
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-[13px] text-slate-500">
+                    No pending requests.
+                  </div>
+                )}
+              </section>
+
+              <section className="rounded-3xl border border-slate-100 bg-white/80 p-4 md:p-5 shadow-[0_18px_50px_rgba(15,23,42,0.06)]">
                 <h2 className="mb-3 text-sm md:text-base font-semibold text-slate-900">
                   Connected doctors
                 </h2>
-                {doctors.length ? (
+                {doctors?.length > 0 ? (
                   <ul className="space-y-3">
                     {doctors.map((doctor) => (
                       <li
@@ -374,6 +490,99 @@ export default function PatientDashboard() {
                   </div>
                 )}
               </section>
+
+              <section className="rounded-3xl border border-slate-100 bg-white/80 p-4 md:p-5 shadow-[0_18px_50px_rgba(15,23,42,0.06)]">
+                <h2 className="mb-3 text-sm md:text-base font-semibold text-slate-900">
+                  My Reviewers
+                </h2>
+                <div className="mb-4">
+                  <form onSubmit={handleSearchReviewer} className="flex gap-2">
+                    <input 
+                      type="email"
+                      placeholder="Add reviewer by email..."
+                      value={searchEmail}
+                      onChange={(e) => setSearchEmail(e.target.value)}
+                      className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-sky-500 focus:outline-none"
+                    />
+                    <button 
+                      type="submit"
+                      disabled={isSearching}
+                      className="rounded-xl bg-sky-600 px-3 py-2 text-white hover:bg-sky-700 disabled:opacity-60"
+                    >
+                      <Search className="h-4 w-4" />
+                    </button>
+                  </form>
+                  {searchError && <p className="mt-2 text-xs text-rose-600">{searchError}</p>}
+                  {searchResult && (
+                    <div className="mt-3 rounded-xl border border-sky-100 bg-sky-50 p-3">
+                      <p className="text-sm font-semibold">{searchResult.full_name}</p>
+                      <button 
+                        onClick={handleSendReviewerRequest}
+                        disabled={sendingRequest}
+                        className="mt-2 w-full rounded-lg bg-slate-900 py-1.5 text-xs text-white"
+                      >
+                        {sendingRequest ? "Sending..." : "Send Request"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {reviewers?.length > 0 && (
+                  <ul className="space-y-3 mb-4">
+                    {reviewers.map((rev) => (
+                      <li key={rev.reviewer_id} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-3.5 py-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-100 text-sm font-semibold text-indigo-700">
+                          {(rev.full_name || "R").charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">{rev.full_name}</p>
+                          <p className="text-[11px] text-slate-500">Reviewer</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                
+                {outgoingRequests?.filter(req => req.type === 'reviewer').length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-slate-100">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Pending Sent Requests</p>
+                    <ul className="space-y-2">
+                      {outgoingRequests.filter(req => req.type === 'reviewer').map(req => (
+                        <li key={req.id} className="flex items-center justify-between text-xs text-slate-600 bg-slate-50 p-2 rounded-lg">
+                          <span>{req.to_name}</span>
+                          <span className="flex items-center gap-1 text-amber-600"><Clock className="h-3 w-3"/> Pending</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </section>
+
+              {reviewing?.length > 0 && (
+                <section className="rounded-3xl border border-indigo-100 bg-indigo-50/50 p-4 md:p-5 shadow-[0_18px_50px_rgba(15,23,42,0.06)]">
+                  <h2 className="mb-3 text-sm md:text-base font-semibold text-indigo-900">
+                    Patients I'm Reviewing
+                  </h2>
+                  <ul className="space-y-3">
+                    {reviewing.map((pat) => (
+                      <li key={pat.patient_id} className="flex items-center justify-between rounded-2xl border border-white bg-white/80 px-3.5 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-100 text-sm font-semibold text-indigo-700">
+                            {(pat.full_name || "P").charAt(0)}
+                          </div>
+                          <p className="text-sm font-semibold text-slate-800">{pat.full_name}</p>
+                        </div>
+                        <button
+                          onClick={() => navigate(`/review/${pat.patient_id}`)}
+                          className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+                        >
+                          <Eye className="h-3.5 w-3.5" /> View
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
 
               <section className="rounded-3xl border border-slate-100 bg-white/80 p-4 md:p-5 shadow-[0_18px_50px_rgba(15,23,42,0.06)]">
                 <h2 className="mb-3 text-sm md:text-base font-semibold text-slate-900">

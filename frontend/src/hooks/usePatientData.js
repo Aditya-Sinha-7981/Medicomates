@@ -298,6 +298,10 @@ export default function usePatientData() {
     doctors: [],
     visits: [],
     adherenceLogs: [],
+    incomingRequests: [],
+    outgoingRequests: [],
+    reviewers: [],
+    reviewing: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -314,13 +318,19 @@ export default function usePatientData() {
 
     try {
       const patientId = user.id;
-      const [dashboardRes, medicinesRes, doctorsRes, visitsRes, adherenceRes] =
-        await Promise.allSettled([
+      const [
+        dashboardRes, medicinesRes, doctorsRes, visitsRes, adherenceRes,
+        incomingRes, outgoingRes, reviewersRes, reviewingRes
+      ] = await Promise.allSettled([
           api.get(endpoints.dashboard.patient(patientId)),
           api.get(endpoints.medicines.list(patientId)),
           api.get(endpoints.connections.doctorsForPatient(patientId)),
           api.get(endpoints.visits.list(patientId)),
           api.get(endpoints.adherence.logs(patientId, 30)),
+          api.get(endpoints.connections.incomingRequests()),
+          api.get(endpoints.connections.outgoingRequests()),
+          api.get(endpoints.connections.reviewersForPatient(patientId)),
+          api.get(endpoints.connections.reviewing()),
         ]);
 
       if (dashboardRes.status === "rejected") {
@@ -334,6 +344,11 @@ export default function usePatientData() {
       const visitsRaw = visitsRes.status === "fulfilled" ? visitsRes.value : [];
       const adherenceLogsRaw =
         adherenceRes.status === "fulfilled" ? adherenceRes.value : [];
+      const incomingRaw = incomingRes.status === "fulfilled" ? incomingRes.value : [];
+      const outgoingRaw = outgoingRes.status === "fulfilled" ? outgoingRes.value : [];
+      const reviewersRaw = reviewersRes.status === "fulfilled" ? reviewersRes.value : [];
+      const reviewingRaw = reviewingRes.status === "fulfilled" ? reviewingRes.value : [];
+
       const doctors = normalizeDoctors(doctorsRaw);
       const visits = normalizeVisits(visitsRaw);
 
@@ -353,6 +368,10 @@ export default function usePatientData() {
         doctors,
         visits,
         adherenceLogs,
+        incomingRequests: Array.isArray(incomingRaw) ? incomingRaw : [],
+        outgoingRequests: Array.isArray(outgoingRaw) ? outgoingRaw : [],
+        reviewers: Array.isArray(reviewersRaw) ? reviewersRaw : [],
+        reviewing: Array.isArray(reviewingRaw) ? reviewingRaw : [],
       });
     } catch (err) {
       setError(err.message || "Failed to load patient data");

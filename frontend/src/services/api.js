@@ -44,6 +44,7 @@ export const endpoints = {
     patient: (patientId) => `/api/dashboard/patient/${patientId}`,
     doctor: (doctorId) => `/api/dashboard/doctor/${doctorId}`,
     insight: (patientId) => `/api/dashboard/insight/${patientId}`,
+    reviewer: (patientId) => `/api/dashboard/reviewer/${patientId}`,
   },
   medicines: {
     list: (patientId) => `/api/medicines/${patientId}`,
@@ -59,8 +60,14 @@ export const endpoints = {
   connections: {
     doctorsForPatient: (patientId) => `/api/connections/doctors/${patientId}`,
     patientsForDoctor: (doctorId) => `/api/connections/patients/${doctorId}`,
-    doctor: () => "/api/connections/doctor",
-    reviewer: () => "/api/connections/reviewer",
+    reviewersForPatient: (patientId) => `/api/connections/reviewers/${patientId}`,
+    reviewing: () => `/api/connections/reviewing`,
+    search: (email, type) => `/api/connections/search?email=${encodeURIComponent(email)}&type=${type}`,
+    request: () => `/api/connections/request`,
+    incomingRequests: () => `/api/connections/requests/incoming`,
+    outgoingRequests: () => `/api/connections/requests/outgoing`,
+    acceptRequest: (id) => `/api/connections/requests/${id}/accept`,
+    rejectRequest: (id) => `/api/connections/requests/${id}/reject`,
   },
   notes: {
     thread: (patientId, doctorId) => `/api/notes/${patientId}/${doctorId}`,
