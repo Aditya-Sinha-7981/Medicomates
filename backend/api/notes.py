@@ -27,13 +27,15 @@ async def send_note(data: NoteSchema, current_user: dict = Depends(get_current_u
         .execute()
     )
     note = (created.data or [{}])[0]
-    actor = "Doctor" if sender_role == "doctor" else "Patient"
-    log_visit(
-        data.patient_id,
-        data.doctor_id,
-        "note_added",
-        f"{actor} sent a note: {data.message[:80]}",
-    )
+    # Visit timeline should reflect clinically meaningful events; keep it focused on doctor actions.
+    # Notes remain visible in the notes thread regardless of whether a visit row is created.
+    if sender_role == "doctor":
+        log_visit(
+            data.patient_id,
+            data.doctor_id,
+            "note_added",
+            f"Doctor sent a note: {data.message[:80]}",
+        )
     return {"message": "Note sent", "id": note.get("id")}
 
 
