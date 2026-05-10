@@ -15,9 +15,7 @@ export default function PatientProfile() {
   const [baseLoaded, setBaseLoaded] = useState(false);
   const [error, setError] = useState("");
   const [medicines, setMedicines] = useState([]);
-  const [adherenceSummary, setAdherenceSummary] = useState([]);
   const [visits, setVisits] = useState([]);
-  const [doctors, setDoctors] = useState([]);
   const [notes, setNotes] = useState([]);
   const [profile, setProfile] = useState({});
 
@@ -32,20 +30,16 @@ export default function PatientProfile() {
       setError("");
       setBaseLoaded(false);
       try {
-        const [medicinesRes, adherenceRes, visitsRes, doctorsRes, notesRes, dashboardRes] =
+        const [medicinesRes, visitsRes, notesRes, dashboardRes] =
           await Promise.all([
           api.get(endpoints.medicines.list(patientId)),
-          api.get(endpoints.adherence.summary(patientId)),
           api.get(endpoints.visits.list(patientId)),
-          api.get(endpoints.connections.doctorsForPatient(patientId)),
           api.get(endpoints.notes.thread(patientId, currentUser.id)),
           api.get(endpoints.dashboard.patient(patientId)),
         ]);
         if (cancelled) return;
         setMedicines(Array.isArray(medicinesRes) ? medicinesRes : []);
-        setAdherenceSummary(Array.isArray(adherenceRes) ? adherenceRes : []);
         setVisits(Array.isArray(visitsRes) ? visitsRes : []);
-        setDoctors(Array.isArray(doctorsRes) ? doctorsRes : []);
         setNotes(Array.isArray(notesRes) ? notesRes : []);
         setProfile(dashboardRes?.profile || {});
         setBaseLoaded(true);
