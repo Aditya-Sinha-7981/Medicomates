@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Search, UserPlus2, Clock } from "lucide-react";
 import AppShell from "../components/layout/AppShell";
 import { getCurrentUser, logout } from "../utils/auth";
 import { api, endpoints } from "../services/api.js";
@@ -11,6 +12,14 @@ export default function DoctorDashboard() {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [searchEmail, setSearchEmail] = useState("");
+  const [searchResult, setSearchResult] = useState(null);
+  const [searchError, setSearchError] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  
+  const [outgoingRequests, setOutgoingRequests] = useState([]);
+  const [sendingRequest, setSendingRequest] = useState(false);
 
   // 1. Authentication & Role Check Guard
   useEffect(() => {
@@ -24,44 +33,73 @@ export default function DoctorDashboard() {
     }
   }, [user, navigate]);
 
-  // 2. Data Fetching with Cleanup
+  // 2. Data Fetching
+  const fetchDashboard = async () => {
+    if (!user?.id) return;
+    setLoading(true);
+    setError("");
+    try {
+      const [dashboard, outgoing] = await Promise.all([
+        api.get(endpoints.dashboard.doctor(user.id)),
+        api.get(endpoints.connections.outgoingRequests())
+      ]);
+      setPatients(Array.isArray(dashboard?.patients) ? dashboard.patients : []);
+      setOutgoingRequests(Array.isArray(outgoing) ? outgoing : []);
+    } catch (err) {
+      setError(err.message || "Failed to load doctor dashboard.");
+      if (err.message.includes("401") || err.message.includes("403")) {
+        logout();
+        navigate("/login", { replace: true });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!user?.id) {
-        if (!cancelled) setLoading(false);
-        return;
-      }
-      setLoading(true);
-      setError("");
-      try {
-        const dashboard = await api.get(endpoints.dashboard.doctor(user.id));
-        const rows = Array.isArray(dashboard?.patients) ? dashboard.patients : [];
-        if (!cancelled) setPatients(rows);
-      } catch (err) {
-        if (!cancelled) setError(err.message || "Failed to load doctor dashboard.");
-        
-        // Safety catch: If token is expired (401), force log out
-        if (err.message.includes("401") || err.message.includes("403")) {
-          logout();
-          navigate("/login", { replace: true });
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    fetchDashboard();
   }, [user?.id, navigate]);
 
-  // 3. Logout Handler
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
-  // Prevent UI flash while redirecting unauthorized users
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchEmail.trim()) return;
+    setIsSearching(true);
+    setSearchError("");
+    setSearchResult(null);
+    try {
+      const res = await api.get(endpoints.connections.search(searchEmail.trim(), "doctor_patient"));
+      setSearchResult(res);
+    } catch (err) {
+      setSearchError(err.message || "User not found.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSendRequest = async () => {
+    if (!searchResult) return;
+    setSendingRequest(true);
+    try {
+      await api.post(endpoints.connections.request(), {
+        to_email: searchEmail.trim(),
+        type: "doctor_patient"
+      });
+      setSearchResult(null);
+      setSearchEmail("");
+      // refresh lists
+      fetchDashboard();
+    } catch (err) {
+      setSearchError(err.message || "Failed to send request.");
+    } finally {
+      setSendingRequest(false);
+    }
+  };
+
   if (!user || user.role !== "doctor") return null;
 
   return (
@@ -84,30 +122,119 @@ export default function DoctorDashboard() {
         </button>
       </div>
 
-      <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Patients</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Real-time adherence snapshot based on today's logged doses.
-        </p>
-        
-        {error ? <p className="mt-4 text-sm text-rose-600">{error}</p> : null}
-        
-        {loading ? (
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500 text-center animate-pulse">
-            Loading patient data...
-          </div>
-        ) : patients.length ? (
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {patients.map((patient) => (
-              <PatientListCard key={patient.patient_id} patient={patient} />
-            ))}
-          </div>
-        ) : (
-          <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500 text-center">
-            No patient accounts available yet.
-          </div>
-        )}
-      </section>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-900">Patients</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Real-time adherence snapshot based on today's logged doses.
+            </p>
+            
+            {error ? <p className="mt-4 text-sm text-rose-600">{error}</p> : null}
+            
+            {loading ? (
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500 text-center animate-pulse">
+                Loading patient data...
+              </div>
+            ) : patients.length ? (
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {patients.map((patient) => (
+                  <PatientListCard key={patient.patient_id} patient={patient} />
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500 text-center">
+                No patient accounts available yet.
+              </div>
+            )}
+          </section>
+        </div>
+
+        <div className="space-y-6">
+          {/* Find Patient Panel */}
+          <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+            <h2 className="text-base font-semibold text-slate-900">Find Patient</h2>
+            <p className="mt-1 text-sm text-slate-500 mb-4">
+              Connect with a patient by email.
+            </p>
+            
+            <form onSubmit={handleSearch} className="flex gap-2">
+              <input 
+                type="email"
+                placeholder="Patient email..."
+                value={searchEmail}
+                onChange={(e) => setSearchEmail(e.target.value)}
+                className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                required
+              />
+              <button 
+                type="submit"
+                disabled={isSearching}
+                className="rounded-xl bg-sky-600 px-3 py-2 text-white shadow-sm hover:bg-sky-700 disabled:opacity-60"
+              >
+                <Search className="h-4 w-4" />
+              </button>
+            </form>
+
+            {searchError && (
+              <p className="mt-3 text-sm text-rose-600">{searchError}</p>
+            )}
+
+            {searchResult && (
+              <div className="mt-4 rounded-xl border border-sky-100 bg-sky-50/50 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700 font-semibold">
+                    {searchResult.full_name.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-900 truncate">{searchResult.full_name}</p>
+                    <p className="text-xs text-slate-500 truncate">{searchResult.role}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleSendRequest}
+                  disabled={sendingRequest}
+                  className="mt-4 w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  <UserPlus2 className="h-4 w-4" />
+                  {sendingRequest ? "Sending..." : "Send Request"}
+                </button>
+              </div>
+            )}
+          </section>
+
+          {/* Outgoing Requests Panel */}
+          <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+            <h2 className="text-base font-semibold text-slate-900 flex items-center gap-2">
+              Pending Requests
+              {outgoingRequests.length > 0 && (
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                  {outgoingRequests.length}
+                </span>
+              )}
+            </h2>
+            
+            <div className="mt-4 space-y-3">
+              {outgoingRequests.length > 0 ? (
+                outgoingRequests.map(req => (
+                  <div key={req.id} className="flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-800 truncate">{req.to_name}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Sent {new Date(req.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-[11px] font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
+                      <Clock className="h-3 w-3" />
+                      Pending
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-slate-500 italic">No pending requests sent.</p>
+              )}
+            </div>
+          </section>
+        </div>
+      </div>
     </AppShell>
   );
 }

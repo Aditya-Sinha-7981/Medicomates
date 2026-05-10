@@ -9,6 +9,7 @@ import PatientProfile from "./pages/PatientProfile";
 import Profile from "./pages/Profile";
 import Register from "./pages/Register";
 import Splash from "./pages/Splash";
+import ReviewerView from "./pages/ReviewerView";
 import { getAuthToken, getCurrentUser } from "./utils/auth";
 
 function ProtectedRoute({ children, requiredRole }) {
@@ -42,6 +43,14 @@ export default function App() {
           element={
             <ProtectedRoute requiredRole="patient">
               <PatientDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/review/:patientId"
+          element={
+            <ProtectedRoute requiredRole="patient">
+              <ReviewerView />
             </ProtectedRoute>
           }
         />
