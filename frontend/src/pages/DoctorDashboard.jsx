@@ -138,8 +138,8 @@ export default function DoctorDashboard() {
               </div>
             ) : patients.length ? (
               <div className="mt-4 grid gap-3 md:grid-cols-2">
-                {patients.map((patient) => (
-                  <PatientListCard key={patient.patient_id} patient={patient} />
+                {patients.map((patient, index) => (
+                  <PatientListCard key={patient.patient_id} patient={patient} index={index} />
                 ))}
               </div>
             ) : (

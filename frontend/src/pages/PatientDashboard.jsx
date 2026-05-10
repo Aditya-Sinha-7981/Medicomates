@@ -250,7 +250,7 @@ export default function PatientDashboard() {
 
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <motion.div
-              className="rounded-3xl border border-slate-100 bg-white/80 p-4 md:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.08)]"
+              className="rounded-3xl border border-slate-100 bg-white/80 p-4 md:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(15,23,42,0.12)]"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
@@ -268,7 +268,7 @@ export default function PatientDashboard() {
             </motion.div>
 
             <motion.div
-              className="rounded-3xl border border-emerald-100 bg-emerald-50/80 p-4 md:p-5 shadow-[0_14px_40px_rgba(4,120,87,0.20)]"
+              className="rounded-3xl border border-emerald-100 bg-emerald-50/80 p-4 md:p-5 shadow-[0_14px_40px_rgba(4,120,87,0.20)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(4,120,87,0.25)]"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
@@ -286,7 +286,7 @@ export default function PatientDashboard() {
             </motion.div>
 
             <motion.div
-              className="rounded-3xl border border-amber-100 bg-amber-50/80 p-4 md:p-5 shadow-[0_14px_40px_rgba(180,83,9,0.12)]"
+              className="rounded-3xl border border-amber-100 bg-amber-50/80 p-4 md:p-5 shadow-[0_14px_40px_rgba(180,83,9,0.12)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(180,83,9,0.18)]"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
@@ -308,7 +308,7 @@ export default function PatientDashboard() {
             </motion.div>
 
             <motion.div
-              className="rounded-3xl border border-slate-100 bg-white/80 p-4 md:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)]"
+              className="rounded-3xl border border-slate-100 bg-white/80 p-4 md:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(15,23,42,0.10)]"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
@@ -335,13 +335,13 @@ export default function PatientDashboard() {
               <section className="flex flex-col gap-3 sm:flex-row">
                 <button
                   onClick={() => navigate("/medicine/new")}
-                  className="flex-1 rounded-full bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_45px_rgba(37,99,235,0.55)] transition hover:bg-sky-700"
+                  className="flex-1 rounded-full bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_45px_rgba(37,99,235,0.55)] transition-all duration-300 hover:bg-sky-700 hover:scale-[1.02] active:scale-[0.98]"
                 >
                   + Add medicine
                 </button>
                 <button
                   onClick={() => navigate("/notes")}
-                  className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-all duration-300 hover:bg-slate-50 hover:scale-[1.02] active:scale-[0.98]"
                 >
                   Message my doctor
                 </button>
@@ -359,9 +359,14 @@ export default function PatientDashboard() {
                 </div>
                 <div className="flex flex-col gap-3">
                   {(dashboard?.todays_medicines || []).length ? (
-                    dashboard.todays_medicines.map((medicine) => (
-                      <MedicineCard
+                    dashboard.todays_medicines.map((medicine, index) => (
+                      <motion.div
                         key={medicine.medicine_id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05, ease: "easeOut" }}
+                      >
+                        <MedicineCard
                         medicine={medicine}
                         onMarkTaken={(medicineId, time) => {
                           markDoseTaken(medicineId, time);
@@ -386,6 +391,7 @@ export default function PatientDashboard() {
                         }
                         isCancelling={isCancelling && cancelTarget?.id === medicine.medicine_id}
                       />
+                      </motion.div>
                     ))
                   ) : (
                     <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">

@@ -1,11 +1,18 @@
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
-export default function PatientListCard({ patient }) {
+export default function PatientListCard({ patient, index = 0 }) {
   const weekly = Number(patient?.weekly_percentage ?? 0);
   const needsAttention = weekly < 60;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.05, ease: "easeOut" }}
+      whileHover={{ y: -2, scale: 1.01 }}
+      className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition-shadow hover:shadow-md"
+    >
       <div className="flex items-center justify-between gap-2">
         <p className="font-semibold text-slate-800">{patient?.full_name || "Unknown patient"}</p>
         <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
@@ -32,6 +39,6 @@ export default function PatientListCard({ patient }) {
           View profile
         </Link>
       </div>
-    </div>
+    </motion.div>
   );
 }
