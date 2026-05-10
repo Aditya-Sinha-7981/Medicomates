@@ -113,7 +113,16 @@ async def get_doctor_dashboard(doctor_id: str, current_user: dict = Depends(get_
     profile_result = supabase.table("profiles").select("full_name").eq("id", doctor_id).execute()
     profile = profile_result.data[0] if profile_result.data else {}
 
-    conns_result = supabase.table("patient_doctor_connections").select("patient_id, profiles(full_name)").eq("doctor_id", doctor_id).execute()
+    # NOTE: Avoid Supabase join ambiguity here because patient_doctor_connections has TWO FKs
+    # to profiles (patient_id and doctor_id). In some Supabase setups, `.select("profiles(...)")`
+    # can error with "Could not find a relationship" / ambiguous relationship name.
+    conns_result = (
+        supabase.table("patient_doctor_connections")
+        .select("patient_id")
+        .eq("doctor_id", doctor_id)
+        .eq("is_active", True)
+        .execute()
+    )
     connections = conns_result.data or []
 
     patients_list = []
@@ -122,7 +131,14 @@ async def get_doctor_dashboard(doctor_id: str, current_user: dict = Depends(get_
 
     for conn in connections:
         pat_id = conn["patient_id"]
-        full_name = conn.get("profiles", {}).get("full_name", "Unknown") if conn.get("profiles") else "Unknown"
+        profile_res = (
+            supabase.table("profiles")
+            .select("full_name")
+            .eq("id", pat_id)
+            .single()
+            .execute()
+        )
+        full_name = (profile_res.data or {}).get("full_name") or "Unknown"
         
         logs_result = supabase.table("adherence_logs").select("*").eq("patient_id", pat_id).gte("scheduled_time", start_this_week.isoformat()).execute()
         logs = logs_result.data or []

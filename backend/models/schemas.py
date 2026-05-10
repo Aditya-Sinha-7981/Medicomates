@@ -62,3 +62,10 @@ class NoteSchema(BaseModel):
 class NoteReadSchema(BaseModel):
     patient_id: str
     doctor_id: str
+
+
+class MarkDoseSchema(BaseModel):
+    patient_id: str
+    medicine_id: str
+    time: str = Field(min_length=4)  # "HH:MM"
+    taken: bool
