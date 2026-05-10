@@ -5,17 +5,27 @@ const STATUS_COLORS = {
   taken: "bg-emerald-500/80 hover:bg-emerald-500",
   missed: "bg-rose-500/80 hover:bg-rose-500",
   pending: "bg-slate-300/80 hover:bg-slate-300",
+  none: "bg-slate-400/90 hover:bg-slate-400",
 };
 
 function computeDayStatus(logsByDay, dateKey) {
   const dayLogs = logsByDay.get(dateKey) || [];
   if (!dayLogs.length) {
-    // No scheduled logs for this day should stay neutral (grey), not missed.
-    return "pending";
+    // Distinguish "no scheduled doses" from "pending/future".
+    return "none";
   }
   if (dayLogs.some((log) => log.status === "missed")) return "missed";
   if (dayLogs.every((log) => log.status === "taken")) return "taken";
   return "pending";
+}
+
+function utcDateKeyFromIso(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 export default function AdherenceCalendar({ logs = [] }) {
@@ -25,7 +35,10 @@ export default function AdherenceCalendar({ logs = [] }) {
   });
 
   const logsByDay = logs.reduce((map, log) => {
-    const key = format(new Date(log.scheduled_time), "yyyy-MM-dd");
+    // scheduled_time is stored in UTC (Z/+00:00). Bucket by UTC day to avoid
+    // local timezone shifting dots to the previous/next day.
+    const key = utcDateKeyFromIso(log.scheduled_time);
+    if (!key) return map;
     const current = map.get(key) || [];
     current.push(log);
     map.set(key, current);
@@ -66,7 +79,9 @@ export default function AdherenceCalendar({ logs = [] }) {
                   <div className="font-medium">
                     {format(date, "dd MMM yyyy")} {isToday ? "(today)" : ""}
                   </div>
-                  <div className="mt-0.5 capitalize text-slate-300">Status: {status}</div>
+                  <div className="mt-0.5 capitalize text-slate-300">
+                    Status: {status === "none" ? "no doses" : status}
+                  </div>
                   <div className="text-slate-400">
                     {count ? `${count} scheduled dose${count > 1 ? "s" : ""}` : "No doses"}
                   </div>
@@ -86,6 +101,9 @@ export default function AdherenceCalendar({ logs = [] }) {
         </div>
         <div className="flex items-center gap-1.5">
           <span className="h-2.5 w-5 rounded-full bg-slate-300" /> Pending / future
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2.5 w-5 rounded-full bg-slate-400" /> No doses
         </div>
       </div>
     </div>

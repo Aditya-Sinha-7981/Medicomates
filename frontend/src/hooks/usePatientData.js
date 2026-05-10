@@ -31,6 +31,15 @@ const utcTimeFromIso = (iso) => {
   return `${hh}:${mm}`;
 };
 
+const utcDateKeyFromIso = (iso) => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 const readOverlay = () => safeParse(localStorage.getItem(OVERLAY_KEY), []);
 const writeOverlay = (entries) =>
   localStorage.setItem(OVERLAY_KEY, JSON.stringify(entries));
@@ -244,6 +253,44 @@ function applyAdherenceOverlay(logs, patientId) {
   });
 }
 
+function buildSyntheticTodayLogs(dashboard, patientId, existingLogs) {
+  const todays = dashboard?.todays_medicines || [];
+  if (!todays.length) return [];
+
+  const todayLocal = new Date();
+  const todayUtcKey = utcDateKeyFromIso(todayLocal.toISOString());
+  const existingTodayByMedicine = new Set(
+    (Array.isArray(existingLogs) ? existingLogs : [])
+      .filter((log) => utcDateKeyFromIso(log?.scheduled_time) === todayUtcKey)
+      .map((log) => log?.medicine_id)
+      .filter(Boolean)
+  );
+
+  const synthetic = [];
+  for (const med of todays) {
+    const medId = med?.medicine_id;
+    if (!medId) continue;
+    // If we already have real logs for this medicine today, don't invent duplicates.
+    if (existingTodayByMedicine.has(medId)) continue;
+    for (const s of med?.statuses || []) {
+      const timeStr = String(s?.time || "");
+      const [hh, mm] = timeStr.split(":").map((v) => Number(v));
+      if (!Number.isFinite(hh) || !Number.isFinite(mm)) continue;
+      const scheduledLocal = new Date(todayLocal);
+      scheduledLocal.setHours(hh, mm, 0, 0);
+      synthetic.push({
+        id: `synthetic-${medId}-${timeStr}`,
+        medicine_id: medId,
+        medicine_name: med?.name,
+        scheduled_time: scheduledLocal.toISOString(),
+        confirmed_at: s?.confirmed_at ?? null,
+        status: s?.status || "pending",
+      });
+    }
+  }
+  return synthetic;
+}
+
 export default function usePatientData() {
   const [data, setData] = useState({
     dashboard: null,
@@ -296,10 +343,9 @@ export default function usePatientData() {
         medicines,
         patientId
       );
-      const adherenceLogs = applyAdherenceOverlay(
-        Array.isArray(adherenceLogsRaw) ? adherenceLogsRaw : [],
-        patientId
-      );
+      const baseLogs = Array.isArray(adherenceLogsRaw) ? adherenceLogsRaw : [];
+      const syntheticToday = buildSyntheticTodayLogs(dashboard, patientId, baseLogs);
+      const adherenceLogs = applyAdherenceOverlay([...baseLogs, ...syntheticToday], patientId);
 
       setData({
         dashboard,
