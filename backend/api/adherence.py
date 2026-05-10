@@ -9,7 +9,7 @@ from models.schemas import MarkDoseSchema
 from utils.adherence_stats import calculate_percentage, compute_status
 from utils.auth import get_current_user
 from utils.supabase_client import supabase
-from utils.token import validate_token
+from utils.token import generate_token, validate_token
 
 router = APIRouter(prefix="/adherence", tags=["adherence"])
 
@@ -37,9 +37,8 @@ async def mark_dose(
     """
     Manual dose toggle from the patient dashboard.
 
-    Important constraint: we ONLY update an existing adherence_logs row created by the scheduler
-    (or previously confirmed by email). We do NOT insert new logs because token constraints vary
-    by DB schema across setups.
+    If a scheduler row for today's slot doesn't exist yet, create one for that slot so
+    manual marking persists across roles (patient/reviewer/doctor views).
     """
     if current_user.get("role") != "patient":
         raise HTTPException(status_code=403, detail="Only patients can mark doses")
@@ -65,12 +64,6 @@ async def mark_dose(
         .execute()
     )
     logs = logs_res.data or []
-    if not logs:
-        raise HTTPException(
-            status_code=404,
-            detail="No scheduled dose found for this medicine today yet.",
-        )
-
     target = None
     for row in logs:
         try:
@@ -83,10 +76,38 @@ async def mark_dose(
             break
 
     if not target:
-        raise HTTPException(
-            status_code=404,
-            detail="No scheduled dose found for that time today.",
+        # No row exists for this slot yet; create one so state is persisted in DB.
+        try:
+            hour, minute = map(int, data.time.split(":"))
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail="Invalid time format. Use HH:MM.") from exc
+
+        scheduled_local = datetime.combine(
+            today_local, datetime.min.time(), tzinfo=app_tz
+        ).replace(hour=hour, minute=minute)
+        scheduled_utc_iso = scheduled_local.astimezone(timezone.utc).isoformat()
+
+        created = (
+            supabase.table("adherence_logs")
+            .insert(
+                {
+                    "medicine_id": data.medicine_id,
+                    "patient_id": data.patient_id,
+                    "scheduled_time": scheduled_utc_iso,
+                    "token": generate_token(),
+                    "confirmed_at": datetime.now(timezone.utc).isoformat() if data.taken else None,
+                    "token_used": bool(data.taken),
+                }
+            )
+            .execute()
         )
+        row = (created.data or [{}])[0]
+        return {
+            "status": "ok",
+            "id": row.get("id"),
+            "confirmed_at": row.get("confirmed_at"),
+            "token_used": row.get("token_used"),
+        }
 
     if data.taken:
         update = {
