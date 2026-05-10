@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 
 from config import settings
+from models.schemas import MarkDoseSchema
 from utils.adherence_stats import calculate_percentage, compute_status
 from utils.auth import get_current_user
 from utils.supabase_client import supabase
@@ -26,6 +28,81 @@ async def confirm_taken(token: str):
     ).eq("id", log["id"]).execute()
 
     return RedirectResponse(url=f"{settings.FRONTEND_URL}/confirm?status=success")
+
+
+@router.post("/mark")
+async def mark_dose(
+    data: MarkDoseSchema, current_user: dict = Depends(get_current_user)
+):
+    """
+    Manual dose toggle from the patient dashboard.
+
+    Important constraint: we ONLY update an existing adherence_logs row created by the scheduler
+    (or previously confirmed by email). We do NOT insert new logs because token constraints vary
+    by DB schema across setups.
+    """
+    if current_user.get("role") != "patient":
+        raise HTTPException(status_code=403, detail="Only patients can mark doses")
+    if current_user.get("id") != data.patient_id:
+        raise HTTPException(status_code=403, detail="Cannot modify another patient's logs")
+
+    # Find today's scheduled logs for this medicine, then match by local-time slot (HH:MM).
+    app_tz = ZoneInfo(settings.SCHEDULER_TIMEZONE)
+    now_utc = datetime.now(timezone.utc)
+    today_local = now_utc.astimezone(app_tz).date()
+    day_start_local = datetime.combine(today_local, datetime.min.time(), tzinfo=app_tz)
+    day_end_local = day_start_local + timedelta(days=1)
+    day_start_utc = day_start_local.astimezone(timezone.utc).isoformat()
+    day_end_utc = day_end_local.astimezone(timezone.utc).isoformat()
+
+    logs_res = (
+        supabase.table("adherence_logs")
+        .select("id, scheduled_time, confirmed_at, token_used")
+        .eq("patient_id", data.patient_id)
+        .eq("medicine_id", data.medicine_id)
+        .gte("scheduled_time", day_start_utc)
+        .lt("scheduled_time", day_end_utc)
+        .execute()
+    )
+    logs = logs_res.data or []
+    if not logs:
+        raise HTTPException(
+            status_code=404,
+            detail="No scheduled dose found for this medicine today yet.",
+        )
+
+    target = None
+    for row in logs:
+        try:
+            scheduled_utc = datetime.fromisoformat(row["scheduled_time"].replace("Z", "+00:00"))
+            scheduled_local = scheduled_utc.astimezone(app_tz)
+        except Exception:
+            continue
+        if scheduled_local.strftime("%H:%M") == data.time:
+            target = row
+            break
+
+    if not target:
+        raise HTTPException(
+            status_code=404,
+            detail="No scheduled dose found for that time today.",
+        )
+
+    if data.taken:
+        update = {
+            "confirmed_at": datetime.now(timezone.utc).isoformat(),
+            # Prevent double-confirmation from the email link after manual marking.
+            "token_used": True,
+        }
+    else:
+        update = {
+            "confirmed_at": None,
+            # Allow email click again if user undoes a manual confirmation.
+            "token_used": False,
+        }
+
+    supabase.table("adherence_logs").update(update).eq("id", target["id"]).execute()
+    return {"status": "ok", "id": target["id"], **update}
 
 
 @router.get("/{patient_id}")

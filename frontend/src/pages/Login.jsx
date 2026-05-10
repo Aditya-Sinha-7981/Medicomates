@@ -25,7 +25,12 @@ export default function Login() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    await login(form);
+    // THE FIX: Pass the selectedRole along with the email and password!
+    await login({ 
+      email: form.email, 
+      password: form.password, 
+      role: selectedRole 
+    });
   };
 
   return (

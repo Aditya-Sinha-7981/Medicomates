@@ -324,7 +324,7 @@ export default function usePatientData() {
   }, [loadData]);
 
   const markDoseTaken = useCallback(
-    (medicineId, time) => {
+    async (medicineId, time) => {
       const user = getCurrentUser();
       if (!user) return;
 
@@ -383,12 +383,27 @@ export default function usePatientData() {
             : prev.dashboard,
         };
       });
+
+      // Persist to backend (updates the existing adherence_logs row for today/time).
+      try {
+        await api.post(endpoints.adherence.mark(), {
+          patient_id: user.id,
+          medicine_id: medicineId,
+          time,
+          taken: true,
+        });
+        // Pull fresh streak + adherenceLogs so calendar/streak update immediately.
+        loadData();
+      } catch {
+        // Non-blocking: keep local optimistic state so the patient UX stays smooth.
+        // The email confirm flow remains the primary source of truth.
+      }
     },
-    []
+    [loadData]
   );
 
   const markDoseUntaken = useCallback(
-    (medicineId, time) => {
+    async (medicineId, time) => {
       const user = getCurrentUser();
       if (!user) return;
 
@@ -449,8 +464,20 @@ export default function usePatientData() {
             : prev.dashboard,
         };
       });
+
+      try {
+        await api.post(endpoints.adherence.mark(), {
+          patient_id: user.id,
+          medicine_id: medicineId,
+          time,
+          taken: false,
+        });
+        loadData();
+      } catch {
+        /* non-blocking */
+      }
     },
-    []
+    [loadData]
   );
 
   const cancelMedicine = useCallback(

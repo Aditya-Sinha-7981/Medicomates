@@ -17,7 +17,9 @@ export default function useAuth() {
     setLoading(true);
     setError("");
     try {
-      const loggedInUser = await authLogin(formData.email, formData.password);
+      // THE FIX: Pass formData.role as the third argument here!
+      const loggedInUser = await authLogin(formData.email, formData.password, formData.role);
+      
       setUser(loggedInUser);
       navigate(loggedInUser.role === "doctor" ? "/doctor" : "/patient");
     } catch (err) {

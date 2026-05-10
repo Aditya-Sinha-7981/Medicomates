@@ -8,20 +8,43 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 # AUTH
 @app.post("/api/auth/login")
 async def mock_login(body: dict):
+    role = body.get("role", "patient")
+    # THE FIX: Return correct name and ID based on role
+    name = "Dr. Sharma" if role == "doctor" else "Ramesh Kumar"
+    user_id = "mock-doctor-uuid-001" if role == "doctor" else "mock-patient-uuid-001"
+    
     return {
         "access_token": "mock_token_123",
-        "role": body.get("role", "patient"),
-        "id": "mock-patient-uuid-001",
-        "full_name": "Ramesh Kumar"
+        "role": role,
+        "id": user_id,
+        "full_name": name
     }
 
 @app.post("/api/auth/register")
 async def mock_register(body: dict):
     return {"message": "registered", "id": "mock-uuid-001", "role": body.get("role", "patient")}
 
+
 # DASHBOARD
 @app.get("/api/dashboard/patient/{patient_id}")
 async def mock_patient_dashboard(patient_id: str):
+    if patient_id == "mock-patient-uuid-002":
+        return {
+            "profile": {"full_name": "Sunita Devi", "allergies": "None known"},
+            "todays_medicines": [
+                {
+                    "medicine_id": "med-002",
+                    "name": "Amlodipine",
+                    "dosage": "5mg",
+                    "reminder_times": ["13:00"],
+                    "statuses": [{"time": "13:00", "status": "missed", "confirmed_at": None}]
+                }
+            ],
+            "streak": {"current": 1, "best": 4},
+            "weekly_percentage": 52,
+            "last_week_percentage": 48
+        }
+        
     return {
         "profile": {"full_name": "Ramesh Kumar", "allergies": "Penicillin"},
         "todays_medicines": [
@@ -53,15 +76,29 @@ async def mock_doctor_dashboard(doctor_id: str):
 
 @app.get("/api/dashboard/insight/{patient_id}")
 async def mock_insight(patient_id: str):
-    await asyncio.sleep(2)  # simulate Gemini latency — do not remove
+    await asyncio.sleep(2)  # simulate Gemini latency
+    if patient_id == "mock-patient-uuid-002":
+        return {
+            "insight": "Sunita is struggling with her mid-day doses (only 52% adherence). Consider a follow-up call to see if the 1:00 PM timing conflicts with her daily schedule.",
+            "generated_at": "2025-04-22T10:30:00Z"
+        }
+        
     return {
         "insight": "Ramesh takes morning doses reliably (87%) but misses evening Metformin frequently (47%). Consider shifting the 9pm reminder to 8pm when he may be more consistent.",
         "generated_at": "2025-04-22T10:30:00Z"
     }
 
+
 # MEDICINES
 @app.get("/api/medicines/{patient_id}")
 async def mock_medicines(patient_id: str):
+    if patient_id == "mock-patient-uuid-002":
+        return [
+            {"id": "med-002", "name": "Amlodipine", "dosage": "5mg", "frequency": "once daily",
+             "reminder_times": ["13:00"], "start_date": "2025-02-10", "end_date": None,
+             "notes": "Take with water", "added_by": "doc-001", "is_active": True}
+        ]
+
     return [
         {"id": "med-001", "name": "Metformin", "dosage": "500mg", "frequency": "twice daily",
          "reminder_times": ["08:00", "21:00"], "start_date": "2025-01-15", "end_date": None,
@@ -79,6 +116,7 @@ async def mock_update_medicine(medicine_id: str, body: dict):
 @app.delete("/api/medicines/{medicine_id}")
 async def mock_delete_medicine(medicine_id: str):
     return {"message": "Medicine deactivated"}
+
 
 # ADHERENCE
 @app.get("/api/adherence/{patient_id}")
@@ -100,6 +138,7 @@ async def mock_adherence_summary(patient_id: str):
              {"time": "21:00", "taken": 14, "missed": 16, "percentage": 47}
          ]}
     ]
+
 
 # CONNECTIONS
 @app.get("/api/connections/patients/{doctor_id}")
@@ -123,6 +162,7 @@ async def mock_connect_doctor(body: dict):
 async def mock_add_reviewer(body: dict):
     return {"message": "Reviewer added", "reviewer_name": "Priya Kumar"}
 
+
 # NOTES
 @app.get("/api/notes/{patient_id}/{doctor_id}")
 async def mock_notes(patient_id: str, doctor_id: str):
@@ -141,15 +181,23 @@ async def mock_send_note(body: dict):
 async def mock_mark_read(patient_id: str, doctor_id: str):
     return {"message": "Marked as read"}
 
+
 # VISITS
 @app.get("/api/visits/{patient_id}")
 async def mock_visits(patient_id: str):
+    if patient_id == "mock-patient-uuid-002":
+        return [
+            {"id": "visit-003", "doctor_name": "Dr. Sharma", "visit_date": "2025-04-15T00:00:00Z",
+             "action_type": "prescription_added", "summary": "Added Amlodipine 5mg"}
+        ]
+        
     return [
         {"id": "visit-001", "doctor_name": "Dr. Sharma", "visit_date": "2025-04-10T00:00:00Z",
          "action_type": "prescription_updated", "summary": "Added Metformin 500mg twice daily"},
         {"id": "visit-002", "doctor_name": "Dr. Sharma", "visit_date": "2025-03-02T00:00:00Z",
          "action_type": "note_added", "summary": "Patient sent a note: Should I continue..."}
     ]
+
 
 # OCR
 @app.post("/api/ocr")

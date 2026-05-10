@@ -54,6 +54,7 @@ export const endpoints = {
   adherence: {
     logs: (patientId, days = 30) => `/api/adherence/${patientId}?days=${days}`,
     summary: (patientId) => `/api/adherence/${patientId}/summary`,
+    mark: () => "/api/adherence/mark",
   },
   connections: {
     doctorsForPatient: (patientId) => `/api/connections/doctors/${patientId}`,
