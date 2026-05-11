@@ -69,6 +69,7 @@ export default function MedicineForm() {
   const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [error, setError] = useState("");
+  const [pendingSafety, setPendingSafety] = useState(null);
 
   const editMedicine = location.state?.medicine || null;
   const isEdit = !!editMedicine;
@@ -146,66 +147,110 @@ export default function MedicineForm() {
     }
   };
 
+  const buildMedicinePayload = () => {
+    const user = getCurrentUser();
+    if (!user) {
+      throw new Error("Please log in again");
+    }
+    const patientId = patientIdFromState || formData.patient_id || user.id;
+    const normalizedTimes = formData.reminder_times.map(normalizeTimeValue).filter(Boolean);
+    const hasDuplicateTimes = new Set(normalizedTimes).size !== normalizedTimes.length;
+    if (!normalizedTimes.length) {
+      throw new Error("Please add at least one reminder time.");
+    }
+    if (hasDuplicateTimes) {
+      throw new Error("Reminder times must be unique.");
+    }
+    if (formData.start_date && formData.end_date && formData.end_date < formData.start_date) {
+      throw new Error("End date cannot be earlier than start date.");
+    }
+    return {
+      patient_id: patientId,
+      name: formData.name.trim(),
+      dosage: formData.dosage.trim(),
+      frequency: formData.frequency.trim(),
+      reminder_times: normalizedTimes,
+      start_date: formData.start_date || null,
+      end_date: formData.end_date?.trim() ? formData.end_date.trim() : null,
+      notes: formData.notes?.trim() ? formData.notes.trim() : null,
+      doctor_id: doctorMode && user.role === "doctor" ? user.id : null,
+    };
+  };
+
+  const finalizeAfterCreate = (body, created) => {
+    const local = readLocalMedicines();
+    const createdId =
+      created?.id || `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const next = local.filter((m) => m.id !== createdId);
+    next.push({ ...body, id: createdId, is_active: true });
+    writeLocalMedicines(next);
+    showToast({ message: "Medicine added successfully.", variant: "success" });
+    navigate(returnTo);
+  };
+
+  const handleConfirmSafety = async () => {
+    if (!pendingSafety) return;
+    const snapshot = pendingSafety;
+    setLoading(true);
+    setError("");
+    try {
+      const ack = [];
+      if (snapshot.warnings?.some((w) => w.type === "allergy")) {
+        ack.push("allergy");
+      }
+      if (snapshot.interactions?.length) {
+        ack.push("interaction");
+      }
+      const created = await api.post(endpoints.medicines.confirm(), {
+        ...snapshot.medicine_data,
+        rxcui: snapshot.rxcui ?? null,
+        acknowledged_warnings: ack,
+      });
+      setPendingSafety(null);
+      finalizeAfterCreate(snapshot.medicine_data, created);
+    } catch (err) {
+      setError(err.message || "Failed to save medicine");
+      showToast({ message: err.message || "Failed to save medicine", variant: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      const user = getCurrentUser();
-      if (!user) {
-        throw new Error("Please log in again");
-      }
-
-      const patientId = patientIdFromState || formData.patient_id || user.id;
-      const normalizedTimes = formData.reminder_times
-        .map(normalizeTimeValue)
-        .filter(Boolean);
-      const hasDuplicateTimes = new Set(normalizedTimes).size !== normalizedTimes.length;
-      if (!normalizedTimes.length) {
-        throw new Error("Please add at least one reminder time.");
-      }
-      if (hasDuplicateTimes) {
-        throw new Error("Reminder times must be unique.");
-      }
-      if (formData.start_date && formData.end_date && formData.end_date < formData.start_date) {
-        throw new Error("End date cannot be earlier than start date.");
-      }
-
-      const body = {
-        patient_id: patientId,
-        name: formData.name.trim(),
-        dosage: formData.dosage.trim(),
-        frequency: formData.frequency.trim(),
-        reminder_times: normalizedTimes,
-        start_date: formData.start_date || null,
-        end_date: formData.end_date?.trim() ? formData.end_date.trim() : null,
-        notes: formData.notes?.trim() ? formData.notes.trim() : null,
-        doctor_id: doctorMode && user.role === "doctor" ? user.id : null,
-      };
+      const body = buildMedicinePayload();
 
       if (isEdit) {
+        const user = getCurrentUser();
+        if (!user) {
+          throw new Error("Please log in again");
+        }
         const medicineId = editMedicine.medicine_id || editMedicine.id;
         await api.put(endpoints.medicines.update(medicineId), body);
         const local = readLocalMedicines();
         const next = local.filter((m) => m.id !== medicineId);
         next.push({ ...editMedicine, ...body, id: medicineId, is_active: true });
         writeLocalMedicines(next);
-      } else {
-        const created = await api.post(endpoints.medicines.create(), body);
-        const local = readLocalMedicines();
-        const createdId =
-          created?.id || `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const next = local.filter((m) => m.id !== createdId);
-        next.push({ ...body, id: createdId, is_active: true });
-        writeLocalMedicines(next);
+        showToast({ message: "Medicine updated successfully.", variant: "success" });
+        navigate(returnTo);
+        return;
       }
 
-      showToast({
-        message: isEdit ? "Medicine updated successfully." : "Medicine added successfully.",
-        variant: "success",
-      });
-      navigate(returnTo);
+      const created = await api.post(endpoints.medicines.create(), body);
+      if (created?.status === "warnings") {
+        setPendingSafety({
+          warnings: created.warnings || [],
+          interactions: created.interactions || [],
+          medicine_data: created.medicine_data,
+          rxcui: created.rxcui ?? null,
+        });
+        return;
+      }
+      finalizeAfterCreate(body, created);
     } catch (err) {
       setError(err.message || "Failed to save medicine");
       showToast({
@@ -219,6 +264,72 @@ export default function MedicineForm() {
 
   return (
     <AppShell title={isEdit ? "Edit Medicine" : "Add Medicine"} subtitle="Medication schedule setup">
+      {pendingSafety ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="safety-modal-title"
+        >
+          <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-amber-200 bg-white p-5 shadow-xl">
+            <h2 id="safety-modal-title" className="text-lg font-semibold text-slate-900">
+              Safety check — please review
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              The drug database flagged a possible issue. You can cancel or add this medicine anyway
+              after confirming you have reviewed the information.
+            </p>
+            <ul className="mt-4 space-y-3 text-sm">
+              {pendingSafety.warnings?.length ? (
+                <li>
+                  <p className="font-semibold text-amber-900">Allergies / verification</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-5 text-slate-700">
+                    {pendingSafety.warnings.map((w, i) => (
+                      <li key={`w-${i}`}>{w.message}</li>
+                    ))}
+                  </ul>
+                </li>
+              ) : null}
+              {pendingSafety.interactions?.length ? (
+                <li>
+                  <p className="font-semibold text-amber-900">Drug interactions</p>
+                  <ul className="mt-1 list-disc space-y-2 pl-5 text-slate-700">
+                    {pendingSafety.interactions.map((it, i) => (
+                      <li key={`i-${i}`}>
+                        <span className="font-medium">
+                          {it.drug1} + {it.drug2}
+                        </span>
+                        : {it.description}
+                        {it.severity ? (
+                          <span className="text-slate-500"> ({it.severity})</span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ) : null}
+            </ul>
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setPendingSafety(null)}
+                disabled={loading}
+                className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+              >
+                Cancel — do not add
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSafety}
+                disabled={loading}
+                className="rounded-full bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-amber-700 disabled:opacity-50"
+              >
+                {loading ? "Saving…" : "I understand, add anyway"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className="w-full max-w-4xl">
         <motion.div
           className="rounded-[30px] border border-slate-100 bg-white/80 shadow-[0_22px_60px_rgba(15,23,42,0.08)] p-5 md:p-8"

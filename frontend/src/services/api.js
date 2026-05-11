@@ -49,6 +49,7 @@ export const endpoints = {
   medicines: {
     list: (patientId) => `/api/medicines/${patientId}`,
     create: () => "/api/medicines",
+    confirm: () => "/api/medicines/confirm",
     update: (medicineId) => `/api/medicines/${medicineId}`,
     remove: (medicineId) => `/api/medicines/${medicineId}`,
   },

@@ -65,6 +65,7 @@ start_date      date
 end_date        date                 -- null = ongoing
 notes           text                 -- "take after food"
 added_by        uuid references profiles(id)  -- doctor or patient
+rxcui           text                 -- RxNorm concept ID when resolved; null if unknown
 is_active       boolean DEFAULT true
 created_at      timestamptz DEFAULT now()
 ```
@@ -574,7 +575,8 @@ POST   /api/auth/login           body: {email, password}
 ### Medicines
 ```
 GET    /api/medicines/{patient_id}          returns all active medicines
-POST   /api/medicines                       body: MedicineSchema — creates + schedules reminders
+POST   /api/medicines                       body: MedicineSchema — RxNorm/allergy check; may return warnings
+POST   /api/medicines/confirm               body: MedicineConfirmSchema — save after user acknowledges warnings
 PUT    /api/medicines/{id}                  body: MedicineSchema — updates + reschedules
 DELETE /api/medicines/{id}                  soft delete (is_active = false), cancels scheduler job
 ```
