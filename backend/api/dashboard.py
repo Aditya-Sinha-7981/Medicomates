@@ -118,18 +118,23 @@ async def get_doctor_dashboard(doctor_id: str, current_user: dict = Depends(get_
     # can error with "Could not find a relationship" / ambiguous relationship name.
     conns_result = (
         supabase.table("patient_doctor_connections")
-        .select("patient_id")
+        .select("patient_id, connected_at")
         .eq("doctor_id", doctor_id)
         .eq("is_active", True)
         .execute()
     )
     connections = conns_result.data or []
 
+    def _conn_sort_key(c: dict) -> str:
+        return c.get("connected_at") or ""
+
+    connections_sorted = sorted(connections, key=_conn_sort_key, reverse=True)
+
     patients_list = []
     now = datetime.now(timezone.utc)
     start_this_week = now - timedelta(days=7)
 
-    for conn in connections:
+    for conn in connections_sorted:
         pat_id = conn["patient_id"]
         profile_res = (
             supabase.table("profiles")
@@ -139,17 +144,18 @@ async def get_doctor_dashboard(doctor_id: str, current_user: dict = Depends(get_
             .execute()
         )
         full_name = (profile_res.data or {}).get("full_name") or "Unknown"
-        
+
         logs_result = supabase.table("adherence_logs").select("*").eq("patient_id", pat_id).gte("scheduled_time", start_this_week.isoformat()).execute()
         logs = logs_result.data or []
-        
+
         weekly_percentage = calculate_time_window_percentage(logs, start_this_week, now)
-        
+
         patients_list.append({
             "patient_id": pat_id,
             "full_name": full_name,
             "weekly_percentage": weekly_percentage,
-            "needs_attention": weekly_percentage < 60
+            "needs_attention": weekly_percentage < 60,
+            "connected_at": conn.get("connected_at"),
         })
 
     return {"profile": profile, "patients": patients_list}
@@ -252,6 +258,9 @@ async def get_reviewer_dashboard(patient_id: str, current_user: dict = Depends(g
 
     # Also return the full 30-day adherence logs so the calendar can render
     adherence_30d = supabase.table("adherence_logs").select("*, medicines(name)").eq("patient_id", patient_id).gte("scheduled_time", (now - timedelta(days=30)).isoformat()).execute()
+    adherence_rows = adherence_30d.data or []
+    for log in adherence_rows:
+        log["status"] = compute_status(log["scheduled_time"], log.get("confirmed_at"))
 
     return {
         "profile": profile,
@@ -259,5 +268,5 @@ async def get_reviewer_dashboard(patient_id: str, current_user: dict = Depends(g
         "streak": streak,
         "weekly_percentage": weekly_percentage,
         "last_week_percentage": last_week_percentage,
-        "adherence_logs": adherence_30d.data or [],
+        "adherence_logs": adherence_rows,
     }

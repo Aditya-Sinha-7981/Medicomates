@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import { Search, UserPlus2, Clock } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import AppShell from "../components/layout/AppShell";
 import { getCurrentUser, logout } from "../utils/auth";
 import { api, endpoints } from "../services/api.js";
@@ -100,6 +100,17 @@ export default function DoctorDashboard() {
     }
   };
 
+  const sortedPatients = useMemo(() => {
+    return [...patients].sort((a, b) => {
+      const ta = a.connected_at ? Date.parse(a.connected_at) : 0;
+      const tb = b.connected_at ? Date.parse(b.connected_at) : 0;
+      return tb - ta;
+    });
+  }, [patients]);
+
+  const previewPatients = sortedPatients.slice(0, 4);
+  const totalPatients = sortedPatients.length;
+
   if (!user || user.role !== "doctor") return null;
 
   return (
@@ -125,9 +136,25 @@ export default function DoctorDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900">Patients</h2>
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">Recent patients</h2>
+              {totalPatients > 0 ? (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
+                  <span>
+                    Showing {Math.min(4, totalPatients)} of {totalPatients}
+                  </span>
+                  <Link
+                    to="/doctor/patients"
+                    className="font-semibold text-sky-600 hover:text-sky-700"
+                  >
+                    View all
+                  </Link>
+                </div>
+              ) : null}
+            </div>
             <p className="mt-1 text-sm text-slate-500">
-              Real-time adherence snapshot based on today's logged doses.
+              Latest connections first. Open <span className="font-medium text-slate-600">Patients</span>{" "}
+              in the sidebar for the full list.
             </p>
             
             {error ? <p className="mt-4 text-sm text-rose-600">{error}</p> : null}
@@ -137,8 +164,8 @@ export default function DoctorDashboard() {
                 Loading patient data...
               </div>
             ) : patients.length ? (
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
-                {patients.map((patient, index) => (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {previewPatients.map((patient, index) => (
                   <PatientListCard key={patient.patient_id} patient={patient} index={index} />
                 ))}
               </div>

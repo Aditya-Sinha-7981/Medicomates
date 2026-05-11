@@ -352,8 +352,10 @@ async def get_reviewing(current_user: dict = Depends(get_current_user)):
     if not rows:
         return []
 
+    rows_sorted = sorted(rows, key=lambda r: r.get("connected_at") or "", reverse=True)
+
     out = []
-    for row in rows:
+    for row in rows_sorted:
         profile_res = (
             supabase.table("profiles")
             .select("full_name")

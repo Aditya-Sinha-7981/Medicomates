@@ -44,22 +44,29 @@ def _patient_reviewer_linked(patient_id: str, reviewer_id: str) -> bool:
 
 
 def assert_can_read_medicines(patient_id: str, current_user: dict) -> None:
+    """
+    Reviewers use accounts with role \"patient\" (see connections — only patients can be reviewers).
+    So we must allow reviewer links before rejecting other patients' IDs.
+    """
     uid = current_user["id"]
     role = current_user.get("role")
-    if role == "patient":
-        if patient_id != uid:
-            raise HTTPException(status_code=403, detail="You can only view your own medicines.")
+
+    if patient_id == uid:
         return
+
+    if _patient_reviewer_linked(patient_id, uid):
+        return
+
     if role == "doctor":
         if _patient_doctor_linked(patient_id, uid):
             return
         raise HTTPException(
             status_code=403, detail="You are not connected to this patient as a doctor."
         )
-    if role == "reviewer":
-        if _patient_reviewer_linked(patient_id, uid):
-            return
-        raise HTTPException(status_code=403, detail="You are not a reviewer for this patient.")
+
+    if role == "patient":
+        raise HTTPException(status_code=403, detail="You can only view your own medicines.")
+
     raise HTTPException(status_code=403, detail="Not allowed to view medicines for this patient.")
 
 
