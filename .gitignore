@@ -25,3 +25,6 @@ Thumbs.db
 #Logs
 logs/
 .cursor/
+
+#sql
+sql/

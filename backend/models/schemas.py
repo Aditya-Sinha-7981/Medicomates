@@ -32,6 +32,13 @@ class MedicineSchema(BaseModel):
     doctor_id: str | None = None
 
 
+class MedicineConfirmSchema(MedicineSchema):
+    """Same body as add medicine, plus resolution metadata after warnings."""
+
+    rxcui: str | None = None
+    acknowledged_warnings: list[str] = Field(default_factory=list)
+
+
 class MedicineUpdateSchema(BaseModel):
     patient_id: str
     name: str | None = None

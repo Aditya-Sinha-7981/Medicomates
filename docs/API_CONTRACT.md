@@ -91,6 +91,8 @@ Response 401:
 GET /api/medicines/{patient_id}
 [Protected]
 
+Caller must be: that patient, a doctor connected to them, or a reviewer connected to them.
+
 Response 200:
 [
   {
@@ -103,6 +105,7 @@ Response 200:
     "end_date": null,
     "notes": "take after food",
     "added_by": "uuid",
+    "rxcui": "6809",
     "is_active": true
   }
 ]
@@ -123,8 +126,41 @@ Body:
   "reminder_times": ["HH:MM", "HH:MM"],
   "start_date": "YYYY-MM-DD",
   "end_date": "YYYY-MM-DD" | null,
-  "notes": "string" | null
+  "notes": "string" | null,
+  "doctor_id": "uuid" | null
 }
+
+Caller must be: that patient, or a doctor connected to that patient (doctor_id must match when set).
+
+Response 200 — saved:
+{
+  "id": "uuid",
+  "message": "Medicine added and reminders scheduled"
+}
+
+Response 200 — safety warnings (nothing saved until confirm):
+{
+  "status": "warnings",
+  "warnings": [
+    { "type": "allergy" | "unresolved", "message": "string", "severity": "high" | "low" }
+  ],
+  "interactions": [
+    { "drug1": "string", "drug2": "string", "description": "string", "severity": "string" }
+  ],
+  "medicine_data": { ...same fields as POST body, JSON-serialized dates... },
+  "rxcui": "string" | null
+}
+```
+
+### Confirm add after warnings
+```
+POST /api/medicines/confirm
+[Protected]
+Content-Type: application/json
+
+Body: same as POST /api/medicines plus:
+  "rxcui": "string" | null,
+  "acknowledged_warnings": ["allergy", "interaction"]
 
 Response 200:
 {
