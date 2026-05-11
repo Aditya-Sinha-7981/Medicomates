@@ -1,17 +1,43 @@
-import { CalendarDays, Home, MessageCircle, Pill, UserCircle2 } from "lucide-react";
+import { CalendarDays, Eye, Home, MessageCircle, Pill, UserCircle2, Users } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { motion } from "framer-motion";
 import HealthcareLogo from "../branding/HealthcareLogo";
 import PageTransition from "./PageTransition";
+import { getCurrentUser } from "../../utils/auth";
 
-const navItems = [
-  { to: "/patient", label: "Dashboard", icon: Home },
-  { to: "/medicines", label: "Medicines", icon: Pill },
-  { to: "/notes", label: "Notes", icon: MessageCircle },
-  { to: "/profile", label: "Profile", icon: UserCircle2 },
-];
+function navItemsForUser() {
+  const user = getCurrentUser();
+  const role = user?.role;
+
+  if (role === "doctor") {
+    return [
+      { to: "/doctor", label: "Dashboard", icon: Home, end: true },
+      { to: "/doctor/patients", label: "Patients", icon: Users },
+      { to: "/notes", label: "Notes", icon: MessageCircle },
+      { to: "/profile", label: "Profile", icon: UserCircle2 },
+    ];
+  }
+
+  if (role === "patient") {
+    return [
+      { to: "/patient", label: "Dashboard", icon: Home, end: true },
+      { to: "/reviewing", label: "Reviewing", icon: Eye },
+      { to: "/medicines", label: "Medicines", icon: Pill },
+      { to: "/notes", label: "Notes", icon: MessageCircle },
+      { to: "/profile", label: "Profile", icon: UserCircle2 },
+    ];
+  }
+
+  return [
+    { to: "/patient", label: "Dashboard", icon: Home },
+    { to: "/medicines", label: "Medicines", icon: Pill },
+    { to: "/notes", label: "Notes", icon: MessageCircle },
+    { to: "/profile", label: "Profile", icon: UserCircle2 },
+  ];
+}
 
 export default function AppShell({ title, subtitle, actions, children }) {
+  const navItems = navItemsForUser();
   return (
     <div className="min-h-screen bg-[#f5f7fb] text-slate-800">
       <aside className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur md:inset-x-auto md:inset-y-0 md:left-0 md:w-64 md:border-r md:border-t-0">
@@ -32,6 +58,7 @@ export default function AppShell({ title, subtitle, actions, children }) {
                 <NavLink
                   key={item.to}
                   to={item.to}
+                  end={Boolean(item.end)}
                   className={({ isActive }) =>
                     `flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition ${
                       isActive
@@ -40,7 +67,11 @@ export default function AppShell({ title, subtitle, actions, children }) {
                     }`
                   }
                 >
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex items-center gap-3 w-full">
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-3 w-full"
+                  >
                     <Icon className="h-4 w-4" />
                     {item.label}
                   </motion.div>
@@ -50,21 +81,22 @@ export default function AppShell({ title, subtitle, actions, children }) {
           </nav>
         </div>
 
-        <nav className="flex items-center justify-around px-2 py-2 md:hidden">
+        <nav className="flex items-center justify-around px-1 py-2 md:hidden overflow-x-auto gap-0.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
               <NavLink
                 key={item.to}
                 to={item.to}
+                end={Boolean(item.end)}
                 className={({ isActive }) =>
-                  `flex flex-col items-center gap-1 rounded-xl px-2 py-1.5 text-[11px] font-medium transition ${
+                  `flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 text-[10px] font-medium transition sm:text-[11px] ${
                     isActive ? "text-blue-700" : "text-slate-500"
                   }`
                 }
               >
-                <Icon className="h-4 w-4" />
-                {item.label}
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="truncate text-center leading-tight">{item.label}</span>
               </NavLink>
             );
           })}
@@ -91,4 +123,3 @@ export default function AppShell({ title, subtitle, actions, children }) {
     </div>
   );
 }
-

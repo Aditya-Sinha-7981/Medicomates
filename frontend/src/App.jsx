@@ -1,5 +1,6 @@
 import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import ConfirmTaken from "./pages/ConfirmTaken";
+import DoctorAllPatients from "./pages/DoctorAllPatients";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import Login from "./pages/Login";
 import MedicineForm from "./pages/MedicineForm";
@@ -10,6 +11,7 @@ import Profile from "./pages/Profile";
 import Register from "./pages/Register";
 import Splash from "./pages/Splash";
 import ReviewerView from "./pages/ReviewerView";
+import ReviewingListPage from "./pages/ReviewingListPage";
 import { getAuthToken, getCurrentUser } from "./utils/auth";
 import IntroWrapper from "./components/layout/IntroWrapper";
 
@@ -56,6 +58,14 @@ export default function App() {
             }
           />
           <Route
+            path="/reviewing"
+            element={
+              <ProtectedRoute requiredRole="patient">
+                <ReviewingListPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/medicines"
             element={
               <ProtectedRoute>
@@ -92,6 +102,14 @@ export default function App() {
             element={
               <ProtectedRoute requiredRole="doctor">
                 <DoctorDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/doctor/patients"
+            element={
+              <ProtectedRoute requiredRole="doctor">
+                <DoctorAllPatients />
               </ProtectedRoute>
             }
           />
