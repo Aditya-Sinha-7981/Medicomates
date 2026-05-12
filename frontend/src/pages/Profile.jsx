@@ -1,5 +1,4 @@
 import AppShell from "../components/layout/AppShell";
-import MedicalDocumentsPanel from "../components/MedicalDocumentsPanel";
 import useAuth from "../hooks/useAuth";
 import { getCurrentUser } from "../utils/auth";
 import { Mail, Shield } from "lucide-react";
@@ -45,8 +44,6 @@ export default function Profile() {
             Logout
           </button>
         </section>
-
-        <MedicalDocumentsPanel variant="self" />
       </div>
     </AppShell>
   );

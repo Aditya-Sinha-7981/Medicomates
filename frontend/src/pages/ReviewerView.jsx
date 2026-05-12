@@ -8,6 +8,7 @@ import InsightCard from "../components/InsightCard";
 import VisitTimeline from "../components/VisitTimeline";
 import { api, endpoints } from "../services/api.js";
 import { format } from "date-fns";
+import { ADHERENCE_ATTENTION_THRESHOLD } from "../utils/adherenceThreshold";
 
 export default function ReviewerView() {
   const { patientId } = useParams();
@@ -53,6 +54,9 @@ export default function ReviewerView() {
       (sum, medicine) => sum + (medicine.statuses || []).filter((s) => s.status === "taken").length, 0
     ), [dashboard]
   );
+
+  const weeklyPct = useMemo(() => Number(dashboard?.weekly_percentage ?? 0), [dashboard?.weekly_percentage]);
+  const weeklyNeedsAttention = weeklyPct < ADHERENCE_ATTENTION_THRESHOLD;
 
   if (loading) {
     return (
@@ -130,10 +134,30 @@ export default function ReviewerView() {
         </motion.header>
 
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <motion.div className="rounded-3xl border border-slate-100 bg-white/80 p-4 md:p-5 shadow-sm" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Weekly adherence</p>
+          <motion.div
+            className={`rounded-3xl border p-4 md:p-5 shadow-sm ${
+              weeklyNeedsAttention
+                ? "border-rose-200 bg-rose-50/90"
+                : "border-slate-100 bg-white/80"
+            }`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <p
+              className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${
+                weeklyNeedsAttention ? "text-rose-700/90" : "text-slate-500"
+              }`}
+            >
+              Weekly adherence
+            </p>
             <div className="mt-2 flex items-end gap-2">
-              <span className="text-3xl font-semibold text-slate-900">{dashboard?.weekly_percentage ?? 0}%</span>
+              <span
+                className={`text-3xl font-semibold ${
+                  weeklyNeedsAttention ? "text-rose-900" : "text-slate-900"
+                }`}
+              >
+                {weeklyPct}%
+              </span>
             </div>
           </motion.div>
 

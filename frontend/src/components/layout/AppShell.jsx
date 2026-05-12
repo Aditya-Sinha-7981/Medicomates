@@ -1,4 +1,4 @@
-import { CalendarDays, Eye, Home, MessageCircle, Pill, UserCircle2, Users } from "lucide-react";
+import { CalendarDays, Eye, FileText, Home, MessageCircle, Pill, UserCircle2, Users } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { motion } from "framer-motion";
 import HealthcareLogo from "../branding/HealthcareLogo";
@@ -21,6 +21,7 @@ function navItemsForUser() {
   if (role === "patient") {
     return [
       { to: "/patient", label: "Dashboard", icon: Home, end: true },
+      { to: "/medical-reports", label: "Reports", icon: FileText },
       { to: "/reviewing", label: "Reviewing", icon: Eye },
       { to: "/medicines", label: "Medicines", icon: Pill },
       { to: "/notes", label: "Notes", icon: MessageCircle },

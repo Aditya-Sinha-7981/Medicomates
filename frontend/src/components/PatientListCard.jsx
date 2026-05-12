@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { ADHERENCE_ATTENTION_THRESHOLD } from "../utils/adherenceThreshold";
 
 export default function PatientListCard({ patient, index = 0 }) {
   const weekly = Number(patient?.weekly_percentage ?? 0);
-  const needsAttention = weekly < 60;
+  const needsAttention = weekly < ADHERENCE_ATTENTION_THRESHOLD;
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05, ease: "easeOut" }}
@@ -15,22 +16,19 @@ export default function PatientListCard({ patient, index = 0 }) {
     >
       <div className="flex items-center justify-between gap-2">
         <p className="font-semibold text-slate-800">{patient?.full_name || "Unknown patient"}</p>
-        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">
+        <span
+          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+            needsAttention
+              ? "bg-rose-100 text-rose-800 ring-1 ring-rose-200/80"
+              : "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200/80"
+          }`}
+        >
           {weekly}%
         </span>
       </div>
       <p className="mt-2 text-xs text-slate-500">
-        Weekly adherence with scheduled doses.
+        Adherence with scheduled doses over the last 30 days.
       </p>
-      {needsAttention ? (
-        <span className="mt-3 inline-flex rounded-full bg-rose-100 px-2.5 py-1 text-[11px] font-semibold text-rose-700">
-          Needs attention
-        </span>
-      ) : (
-        <span className="mt-3 inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-          Stable
-        </span>
-      )}
       <div className="mt-3">
         <Link
           to={`/patient/${patient?.patient_id}`}

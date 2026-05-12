@@ -551,11 +551,14 @@ Response 200:
       "patient_id": "uuid",
       "full_name": "Ramesh Kumar",
       "weekly_percentage": 87,
-      "needs_attention": false
+      "needs_attention": false,
+      "connected_at": "2025-03-10T00:00:00Z"
     }
   ]
 }
 ```
+
+Note: For each entry in `patients`, `weekly_percentage` is adherence over **scheduled doses in the last 30 days** (rolling window, same field name as historically used by the doctor list UI). `needs_attention` is `true` when that value is below 60.
 
 ### AI insight card — generates fresh on every call
 ```
