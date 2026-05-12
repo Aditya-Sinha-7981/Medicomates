@@ -11,6 +11,44 @@ from utils.supabase_client import supabase
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
+
+def _supply_meta(med: dict) -> dict:
+    """Depletion-only supply hints for dashboard (no package expiry)."""
+    q = med.get("quantity_on_hand")
+    upd = med.get("units_per_day")
+    threshold = med.get("low_supply_threshold_days")
+    if threshold is None:
+        threshold = 7
+    base: dict = {
+        "quantity_on_hand": q,
+        "units_per_day": float(upd) if upd is not None else None,
+        "low_supply_threshold_days": int(threshold) if threshold is not None else 7,
+        "supply_tracked": False,
+        "supply_warning": False,
+        "supply_restock_message": None,
+        "estimated_days_of_supply": None,
+    }
+    if q is None or upd is None:
+        return base
+    try:
+        fq = float(q)
+        fupd = float(upd)
+    except (TypeError, ValueError):
+        return base
+    if fupd <= 0:
+        return base
+    base["supply_tracked"] = True
+    days = fq / max(fupd, 0.25)
+    base["estimated_days_of_supply"] = round(days, 1)
+    thr = float(threshold) if threshold is not None else 7.0
+    if days <= thr:
+        base["supply_warning"] = True
+        base["supply_restock_message"] = (
+            f"About {days:.1f} days of supply left at current pace — consider restocking."
+        )
+    return base
+
+
 @router.get("/patient/{patient_id}")
 async def get_patient_dashboard(patient_id: str, current_user: dict = Depends(get_current_user)):
     # 1. Profile
@@ -91,13 +129,16 @@ async def get_patient_dashboard(patient_id: str, current_user: dict = Depends(ge
             except Exception:
                 pass
 
-        todays_medicines.append({
-            "medicine_id": med["id"],
-            "name": med["name"],
-            "dosage": med["dosage"],
-            "reminder_times": med.get("reminder_times", []),
-            "statuses": sorted(statuses, key=lambda x: x["time"])
-        })
+        todays_medicines.append(
+            {
+                "medicine_id": med["id"],
+                "name": med["name"],
+                "dosage": med["dosage"],
+                "reminder_times": med.get("reminder_times", []),
+                "statuses": sorted(statuses, key=lambda x: x["time"]),
+                **_supply_meta(med),
+            }
+        )
 
     return {
         "profile": profile,
@@ -248,13 +289,16 @@ async def get_reviewer_dashboard(patient_id: str, current_user: dict = Depends(g
                 statuses.append({"time": rt, "status": status, "confirmed_at": conf_at})
             except Exception:
                 pass
-        todays_medicines.append({
-            "medicine_id": med["id"],
-            "name": med["name"],
-            "dosage": med["dosage"],
-            "reminder_times": med.get("reminder_times", []),
-            "statuses": sorted(statuses, key=lambda x: x["time"]),
-        })
+        todays_medicines.append(
+            {
+                "medicine_id": med["id"],
+                "name": med["name"],
+                "dosage": med["dosage"],
+                "reminder_times": med.get("reminder_times", []),
+                "statuses": sorted(statuses, key=lambda x: x["time"]),
+                **_supply_meta(med),
+            }
+        )
 
     # Also return the full 30-day adherence logs so the calendar can render
     adherence_30d = supabase.table("adherence_logs").select("*, medicines(name)").eq("patient_id", patient_id).gte("scheduled_time", (now - timedelta(days=30)).isoformat()).execute()

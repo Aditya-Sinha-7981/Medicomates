@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { CalendarIcon, Clock4, FileImage } from "lucide-react";
 import { motion } from "framer-motion";
 import AppShell from "../components/layout/AppShell";
+import { Modal } from "../components/ui/Modal";
 import { getCurrentUser } from "../utils/auth";
 import { api, endpoints } from "../services/api.js";
 import { useToast } from "../components/ui/ToastContext";
@@ -18,6 +19,9 @@ const defaultForm = {
   notes: "",
   start_date: new Date().toISOString().slice(0, 10),
   end_date: "",
+  quantity_on_hand: "",
+  units_per_day: "",
+  low_supply_threshold_days: "7",
 };
 
 const normalizeOcrField = (value) => {
@@ -57,6 +61,14 @@ function buildInitialForm(editMedicine, user, patientIdFromState) {
       notes: editMedicine.notes || "",
       start_date: editMedicine.start_date || defaultForm.start_date,
       end_date: editMedicine.end_date || "",
+      quantity_on_hand:
+        editMedicine.quantity_on_hand != null ? String(editMedicine.quantity_on_hand) : "",
+      units_per_day:
+        editMedicine.units_per_day != null ? String(editMedicine.units_per_day) : "",
+      low_supply_threshold_days:
+        editMedicine.low_supply_threshold_days != null
+          ? String(editMedicine.low_supply_threshold_days)
+          : "7",
     };
   }
   return { ...defaultForm, patient_id: patientIdFromState || user?.id || "" };
@@ -70,6 +82,8 @@ export default function MedicineForm() {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [error, setError] = useState("");
   const [pendingSafety, setPendingSafety] = useState(null);
+  const [removeOpen, setRemoveOpen] = useState(false);
+  const [removeLoading, setRemoveLoading] = useState(false);
 
   const editMedicine = location.state?.medicine || null;
   const isEdit = !!editMedicine;
@@ -164,6 +178,22 @@ export default function MedicineForm() {
     if (formData.start_date && formData.end_date && formData.end_date < formData.start_date) {
       throw new Error("End date cannot be earlier than start date.");
     }
+    const parseIntOrNull = (v) => {
+      if (v === "" || v == null) return null;
+      const n = parseInt(String(v), 10);
+      return Number.isFinite(n) ? n : null;
+    };
+    const parseFloatOrNull = (v) => {
+      if (v === "" || v == null) return null;
+      const n = parseFloat(String(v));
+      return Number.isFinite(n) ? n : null;
+    };
+    const q = parseIntOrNull(formData.quantity_on_hand);
+    const upd = parseFloatOrNull(formData.units_per_day);
+    const thr = parseIntOrNull(formData.low_supply_threshold_days);
+    if ((q != null || upd != null) && (q == null || upd == null)) {
+      throw new Error("To track supply, enter both quantity on hand and units per day (or leave both blank).");
+    }
     return {
       patient_id: patientId,
       name: formData.name.trim(),
@@ -174,6 +204,9 @@ export default function MedicineForm() {
       end_date: formData.end_date?.trim() ? formData.end_date.trim() : null,
       notes: formData.notes?.trim() ? formData.notes.trim() : null,
       doctor_id: doctorMode && user.role === "doctor" ? user.id : null,
+      quantity_on_hand: q,
+      units_per_day: upd,
+      low_supply_threshold_days: q != null && upd != null ? thr ?? 7 : null,
     };
   };
 
@@ -259,6 +292,28 @@ export default function MedicineForm() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRemoveMedicine = async () => {
+    if (!isEdit) return;
+    const user = getCurrentUser();
+    if (!user) return;
+    const medicineId = editMedicine.medicine_id || editMedicine.id;
+    setRemoveLoading(true);
+    setError("");
+    try {
+      await api.delete(endpoints.medicines.remove(medicineId));
+      const local = readLocalMedicines();
+      writeLocalMedicines(local.filter((m) => m.id !== medicineId));
+      showToast({ message: "Medicine removed from your plan.", variant: "success" });
+      setRemoveOpen(false);
+      navigate(returnTo);
+    } catch (err) {
+      setError(err.message || "Failed to remove medicine");
+      showToast({ message: err.message || "Failed to remove medicine", variant: "error" });
+    } finally {
+      setRemoveLoading(false);
     }
   };
 
@@ -445,6 +500,58 @@ export default function MedicineForm() {
               </div>
             </section>
 
+            <section className="rounded-2xl border border-amber-100 bg-amber-50/40 p-4 md:p-5">
+              <h3 className="text-sm font-semibold text-slate-900">Supply (optional)</h3>
+              <p className="mt-1 text-xs text-slate-600">
+                Track tablets or doses remaining. We estimate days left from quantity ÷ units per day and warn when
+                you are within the threshold.
+              </p>
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    Quantity on hand
+                  </label>
+                  <input
+                    type="number"
+                    name="quantity_on_hand"
+                    min="0"
+                    value={formData.quantity_on_hand}
+                    onChange={handleChange}
+                    placeholder="e.g. 30"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    Units per day
+                  </label>
+                  <input
+                    type="number"
+                    name="units_per_day"
+                    min="0"
+                    step="0.25"
+                    value={formData.units_per_day}
+                    onChange={handleChange}
+                    placeholder="e.g. 2"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    Warn within (days)
+                  </label>
+                  <input
+                    type="number"
+                    name="low_supply_threshold_days"
+                    min="1"
+                    value={formData.low_supply_threshold_days}
+                    onChange={handleChange}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900"
+                  />
+                </div>
+              </div>
+            </section>
+
             <section className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
@@ -532,9 +639,20 @@ export default function MedicineForm() {
             </section>
 
             <div className="pt-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <p className="text-[11px] md:text-xs text-slate-400">
-                You can always adjust times later if the patient’s routine changes.
-              </p>
+              <div className="space-y-2">
+                <p className="text-[11px] md:text-xs text-slate-400">
+                  You can always adjust times later if the patient’s routine changes.
+                </p>
+                {isEdit ? (
+                  <button
+                    type="button"
+                    onClick={() => setRemoveOpen(true)}
+                    className="text-sm font-semibold text-rose-600 hover:text-rose-700"
+                  >
+                    Remove medicine from plan…
+                  </button>
+                ) : null}
+              </div>
               <button
                 type="submit"
                 disabled={loading || ocrLoading}
@@ -546,6 +664,29 @@ export default function MedicineForm() {
           </form>
         </motion.div>
       </div>
+
+      <Modal open={removeOpen} onClose={() => setRemoveOpen(false)} title="Remove medicine?">
+        <p className="text-sm text-slate-600">
+          This stops future reminders for this medicine. Past adherence history stays in the record.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setRemoveOpen(false)}
+            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          >
+            Keep
+          </button>
+          <button
+            type="button"
+            onClick={handleRemoveMedicine}
+            disabled={removeLoading}
+            className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+          >
+            {removeLoading ? "Removing…" : "Remove"}
+          </button>
+        </div>
+      </Modal>
     </AppShell>
   );
 }

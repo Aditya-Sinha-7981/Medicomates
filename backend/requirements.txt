@@ -13,3 +13,4 @@ resend==2.4.0
 httpx==0.27.2
 aiofiles==23.2.1
 pillow==10.4.0
+cloudinary==1.41.0

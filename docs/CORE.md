@@ -67,6 +67,9 @@ notes           text                 -- "take after food"
 added_by        uuid references profiles(id)  -- doctor or patient
 rxcui           text                 -- RxNorm concept ID when resolved; null if unknown
 is_active       boolean DEFAULT true
+quantity_on_hand integer            -- optional: units left (pills, etc.)
+units_per_day    double precision   -- optional: average units consumed per calendar day
+low_supply_threshold_days integer   -- optional: warn when estimated days of supply <= this (default 7 in app logic when tracking)
 created_at      timestamptz DEFAULT now()
 ```
 
@@ -120,6 +123,23 @@ is_read       boolean DEFAULT false
 created_at    timestamptz DEFAULT now()
 ```
 
+### `medical_documents`
+```sql
+id                     uuid PRIMARY KEY DEFAULT gen_random_uuid()
+owner_profile_id       uuid references profiles(id)
+uploaded_by            uuid references profiles(id)
+cloudinary_public_id   text NOT NULL
+secure_url             text NOT NULL
+original_filename      text
+mime_type              text
+size_bytes             bigint
+resource_type          text
+title                  text NOT NULL
+notes                  text
+created_at             timestamptz DEFAULT now()
+updated_at             timestamptz
+```
+
 > **Rule:** Every time a doctor updates a prescription or adds a note, also insert a row into `visits`. This is how the timeline is built — there is no separate "create visit" action.
 
 ---
@@ -145,6 +165,7 @@ medadhere/
 │   │   ├── notes.py              # Patient ↔ Doctor notes
 │   │   ├── connections.py        # Connect doctor/reviewer to patient
 │   │   ├── dashboard.py          # Aggregated data for dashboards
+│   │   ├── documents.py          # Medical file uploads (Cloudinary + RBAC)
 │   │   └── ocr.py                # POST /api/ocr — image → extracted text
 │   │
 │   ├── services/
@@ -581,6 +602,15 @@ PUT    /api/medicines/{id}                  body: MedicineSchema — updates + r
 DELETE /api/medicines/{id}                  soft delete (is_active = false), cancels scheduler job
 ```
 
+### Medical documents (Cloudinary)
+```
+POST   /api/documents/upload                multipart: file, optional patient_id (doctor → connected patient)
+GET    /api/documents/me                    list current user's chart documents
+GET    /api/documents/patient/{id}          doctor + active link only — reviewers blocked
+PATCH  /api/documents/{id}                  title + notes
+DELETE /api/documents/{id}                  removes DB row + Cloudinary asset
+```
+
 ### Adherence
 ```
 GET    /api/adherence/confirm?token=xxx     no auth — email click lands here
@@ -638,6 +668,16 @@ BACKEND_URL=https://your-app.railway.app
 
 # Scheduler
 SCHEDULER_TIMEZONE=Asia/Kolkata            # IST — always set this explicitly
+
+# Cloudinary (medical_documents file storage)
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+# Frontend (.env in frontend/) — Vite
+VITE_API_URL=http://localhost:8000
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...   # anon public key (password reset + client auth helpers)
 ```
 
 ---
@@ -659,6 +699,7 @@ aiofiles==23.2.1
 pydantic==2.7.0
 pydantic-settings==2.2.1
 pillow==10.3.0              # image processing before sending to Gemini
+cloudinary==1.41.0          # medical document storage
 ```
 
 **Frontend (`package.json` key deps):**

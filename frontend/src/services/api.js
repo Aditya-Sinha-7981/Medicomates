@@ -79,6 +79,13 @@ export const endpoints = {
     list: (patientId) => `/api/visits/${patientId}`,
   },
   ocr: () => "/api/ocr",
+  documents: {
+    upload: () => "/api/documents/upload",
+    me: () => "/api/documents/me",
+    patient: (patientId) => `/api/documents/patient/${patientId}`,
+    update: (id) => `/api/documents/${id}`,
+    remove: (id) => `/api/documents/${id}`,
+  },
 };
 
 export const api = {
@@ -103,6 +110,13 @@ export const api = {
     fetch(`${BASE_URL}${path}`, {
       method: "DELETE",
       headers: authHeadersJson(),
+    }).then(handleResponse),
+
+  patch: (path, body) =>
+    fetch(`${BASE_URL}${path}`, {
+      method: "PATCH",
+      headers: authHeadersJson(),
+      body: JSON.stringify(body),
     }).then(handleResponse),
 
   upload: (path, formData) =>

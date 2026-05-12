@@ -103,12 +103,12 @@ export default function Login() {
         </div>
 
         <div className="mb-6 text-right">
-          <button
-            type="button"
+          <Link
+            to="/forgot-password"
             className="text-lg font-semibold text-[#2a79e8] transition hover:text-[#1f67d2]"
           >
-            Forgot Password?
-          </button>
+            Forgot password?
+          </Link>
         </div>
 
         {error ? <p className="mb-4 text-base font-medium text-red-600">{error}</p> : null}
