@@ -8,6 +8,8 @@ import Notes from "./pages/Notes";
 import PatientDashboard from "./pages/PatientDashboard";
 import PatientProfile from "./pages/PatientProfile";
 import Profile from "./pages/Profile";
+import MedicalReportsPage from "./pages/MedicalReportsPage";
+import PatientDocumentsPage from "./pages/PatientDocumentsPage";
 import Register from "./pages/Register";
 import Splash from "./pages/Splash";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -102,6 +104,14 @@ export default function App() {
             }
           />
           <Route
+            path="/medical-reports"
+            element={
+              <ProtectedRoute requiredRole="patient">
+                <MedicalReportsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/doctor"
             element={
               <ProtectedRoute requiredRole="doctor">
@@ -114,6 +124,14 @@ export default function App() {
             element={
               <ProtectedRoute requiredRole="doctor">
                 <DoctorAllPatients />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/patient/:patientId/documents"
+            element={
+              <ProtectedRoute requiredRole="doctor">
+                <PatientDocumentsPage />
               </ProtectedRoute>
             }
           />

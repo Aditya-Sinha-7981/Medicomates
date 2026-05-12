@@ -173,7 +173,8 @@ async def get_doctor_dashboard(doctor_id: str, current_user: dict = Depends(get_
 
     patients_list = []
     now = datetime.now(timezone.utc)
-    start_this_week = now - timedelta(days=7)
+    # Doctor list cards: rolling adherence over last 30 days (scheduled doses in window).
+    start_30d = now - timedelta(days=30)
 
     for conn in connections_sorted:
         pat_id = conn["patient_id"]
@@ -186,16 +187,22 @@ async def get_doctor_dashboard(doctor_id: str, current_user: dict = Depends(get_
         )
         full_name = (profile_res.data or {}).get("full_name") or "Unknown"
 
-        logs_result = supabase.table("adherence_logs").select("*").eq("patient_id", pat_id).gte("scheduled_time", start_this_week.isoformat()).execute()
+        logs_result = (
+            supabase.table("adherence_logs")
+            .select("*")
+            .eq("patient_id", pat_id)
+            .gte("scheduled_time", start_30d.isoformat())
+            .execute()
+        )
         logs = logs_result.data or []
 
-        weekly_percentage = calculate_time_window_percentage(logs, start_this_week, now)
+        rolling_30d_percentage = calculate_time_window_percentage(logs, start_30d, now)
 
         patients_list.append({
             "patient_id": pat_id,
             "full_name": full_name,
-            "weekly_percentage": weekly_percentage,
-            "needs_attention": weekly_percentage < 60,
+            "weekly_percentage": rolling_30d_percentage,
+            "needs_attention": rolling_30d_percentage < 60,
             "connected_at": conn.get("connected_at"),
         })
 

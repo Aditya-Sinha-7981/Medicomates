@@ -11,6 +11,7 @@ import { api, endpoints } from "../services/api.js";
 import { Modal } from "../components/ui/Modal";
 import { useToast } from "../components/ui/ToastContext";
 import AppShell from "../components/layout/AppShell";
+import { ADHERENCE_ATTENTION_THRESHOLD } from "../utils/adherenceThreshold";
 
 export default function PatientDashboard() {
   const navigate = useNavigate();
@@ -63,6 +64,9 @@ export default function PatientDashboard() {
       ),
     [dashboard]
   );
+
+  const weeklyPct = useMemo(() => Number(dashboard?.weekly_percentage ?? 0), [dashboard?.weekly_percentage]);
+  const weeklyNeedsAttention = weeklyPct < ADHERENCE_ATTENTION_THRESHOLD;
 
   const reviewingSorted = useMemo(() => {
     const list = Array.isArray(reviewing) ? reviewing : [];
@@ -245,13 +249,18 @@ export default function PatientDashboard() {
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2">
-                <div className="rounded-2xl bg-sky-50/15 px-3 py-2 text-[11px] md:text-xs text-sky-50 shadow-sm shadow-sky-900/30 flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5" />
+                <div
+                  className={`rounded-2xl px-3 py-2 text-[11px] md:text-xs shadow-sm shadow-sky-900/30 flex items-center gap-1.5 ${
+                    weeklyNeedsAttention
+                      ? "bg-rose-500/30 text-rose-50 ring-1 ring-rose-200/50"
+                      : "bg-sky-50/15 text-sky-50"
+                  }`}
+                >
+                  <Sparkles className="h-3.5 w-3.5 shrink-0" />
                   <span>
                     Weekly adherence:{" "}
                     <span className="font-semibold">
-                      {dashboard?.weekly_percentage ?? 0}
-                      %
+                      {weeklyPct}%
                     </span>
                   </span>
                 </div>
@@ -261,19 +270,31 @@ export default function PatientDashboard() {
 
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <motion.div
-              className="rounded-3xl border border-slate-100 bg-white/80 p-4 md:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(15,23,42,0.12)]"
+              className={`rounded-3xl border p-4 md:p-5 shadow-[0_14px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(15,23,42,0.12)] ${
+                weeklyNeedsAttention
+                  ? "border-rose-200 bg-rose-50/90"
+                  : "border-slate-100 bg-white/80"
+              }`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              <p
+                className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${
+                  weeklyNeedsAttention ? "text-rose-700/90" : "text-slate-500"
+                }`}
+              >
                 Weekly adherence
               </p>
               <div className="mt-2 flex items-end gap-2">
-                <span className="text-3xl font-semibold text-slate-900">
-                  {dashboard?.weekly_percentage ?? 0}%
+                <span
+                  className={`text-3xl font-semibold ${
+                    weeklyNeedsAttention ? "text-rose-900" : "text-slate-900"
+                  }`}
+                >
+                  {weeklyPct}%
                 </span>
               </div>
-              <p className="mt-2 text-[11px] text-slate-400">
+              <p className={`mt-2 text-[11px] ${weeklyNeedsAttention ? "text-rose-800/90" : "text-slate-400"}`}>
                 From your dashboard summary (this week vs. scheduled doses).
               </p>
             </motion.div>

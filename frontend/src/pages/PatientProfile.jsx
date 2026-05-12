@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import AppShell from "../components/layout/AppShell";
-import MedicalDocumentsPanel from "../components/MedicalDocumentsPanel";
 import { Modal } from "../components/ui/Modal";
 import { useToast } from "../components/ui/ToastContext";
 import { getCurrentUser } from "../utils/auth";
@@ -109,7 +108,19 @@ export default function PatientProfile() {
 
           <InsightCard patientId={patientId} enabled={baseLoaded} />
 
-          <MedicalDocumentsPanel variant="patient" patientId={patientId} />
+          <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+            <h2 className="text-base font-semibold text-slate-900">Medical documents</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              View, upload, and edit patient reports.
+            </p>
+            <Link
+              to={`/patient/${patientId}/documents`}
+              state={{ patientName }}
+              className="mt-4 inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700"
+            >
+              Open medical documents
+            </Link>
+          </section>
 
           <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
             <h2 className="text-base font-semibold text-slate-900">Current medicines</h2>
