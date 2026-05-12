@@ -165,6 +165,11 @@ export default function ReviewerView() {
                     <div key={med.medicine_id} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
                       <p className="font-semibold text-slate-800">{med.name}</p>
                       <p className="text-xs text-slate-500">{med.dosage}</p>
+                      {med.supply_warning && med.supply_restock_message ? (
+                        <p className="mt-1 text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1">
+                          {med.supply_restock_message}
+                        </p>
+                      ) : null}
                       <div className="mt-3 flex flex-wrap gap-2">
                         {med.statuses.map((s, idx) => (
                           <div key={idx} className={`rounded-full px-2 py-1 text-[11px] font-medium border ${s.status === 'taken' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : s.status === 'missed' ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>

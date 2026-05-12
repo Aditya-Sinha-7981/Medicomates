@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     FRONTEND_URL: str
     BACKEND_URL: str
     SCHEDULER_TIMEZONE: str = "Asia/Kolkata"
+    CLOUDINARY_CLOUD_NAME: str = ""
+    CLOUDINARY_API_KEY: str = ""
+    CLOUDINARY_API_SECRET: str = ""
 
     @field_validator(
         "SUPABASE_URL",

@@ -1,4 +1,5 @@
 import AppShell from "../components/layout/AppShell";
+import MedicalDocumentsPanel from "../components/MedicalDocumentsPanel";
 import useAuth from "../hooks/useAuth";
 import { getCurrentUser } from "../utils/auth";
 import { Mail, Shield } from "lucide-react";
@@ -9,7 +10,7 @@ export default function Profile() {
 
   return (
     <AppShell title="Profile" subtitle="Your account details">
-      <div className="max-w-3xl">
+      <div className="max-w-3xl space-y-6">
         <section className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-900">Personal Information</h2>
           <p className="mt-1 text-sm text-slate-500">Used for dashboard personalization.</p>
@@ -44,6 +45,8 @@ export default function Profile() {
             Logout
           </button>
         </section>
+
+        <MedicalDocumentsPanel variant="self" />
       </div>
     </AppShell>
   );

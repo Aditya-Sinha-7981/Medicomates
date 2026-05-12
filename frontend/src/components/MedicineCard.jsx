@@ -48,6 +48,11 @@ export default function MedicineCard({
               <p className="text-xs md:text-[13px] text-slate-500">
                 {medicine.frequency || "Scheduled dose"}
               </p>
+              {medicine.supply_warning && medicine.supply_restock_message ? (
+                <p className="mt-1 rounded-lg bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-900 border border-amber-100">
+                  {medicine.supply_restock_message}
+                </p>
+              ) : null}
             </div>
             {nextDose ? (
               <p className="text-[11px] md:text-xs text-slate-500 flex items-center gap-1">

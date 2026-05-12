@@ -112,6 +112,9 @@ async def _save_medicine(data: MedicineSchema, rxcui: str | None) -> dict:
         "added_by": data.doctor_id,
         "rxcui": rxcui,
         "is_active": True,
+        "quantity_on_hand": data.quantity_on_hand,
+        "units_per_day": data.units_per_day,
+        "low_supply_threshold_days": data.low_supply_threshold_days,
     }
     created = supabase.table("medicines").insert(payload).execute()
     medicine = (created.data or [{}])[0]
@@ -194,11 +197,8 @@ async def update_medicine(
         raise HTTPException(status_code=404, detail="Medicine not found")
     assert_can_write_medicines(existing.data["patient_id"], current_user, data.doctor_id)
 
-    update_payload = data.model_dump(exclude_none=True)
-    if "start_date" in update_payload and data.start_date:
-        update_payload["start_date"] = data.start_date.isoformat()
-    if "end_date" in update_payload and data.end_date:
-        update_payload["end_date"] = data.end_date.isoformat()
+    raw = data.model_dump(exclude_unset=True, mode="json")
+    update_payload = {k: v for k, v in raw.items() if k not in ("patient_id", "doctor_id")}
 
     if update_payload:
         supabase.table("medicines").update(update_payload).eq("id", medicine_id).execute()

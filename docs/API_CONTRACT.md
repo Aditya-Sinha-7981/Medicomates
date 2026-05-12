@@ -106,7 +106,10 @@ Response 200:
     "notes": "take after food",
     "added_by": "uuid",
     "rxcui": "6809",
-    "is_active": true
+    "is_active": true,
+    "quantity_on_hand": 30,
+    "units_per_day": 2.0,
+    "low_supply_threshold_days": 7
   }
 ]
 ```
@@ -127,8 +130,14 @@ Body:
   "start_date": "YYYY-MM-DD",
   "end_date": "YYYY-MM-DD" | null,
   "notes": "string" | null,
-  "doctor_id": "uuid" | null
+  "doctor_id": "uuid" | null,
+  "quantity_on_hand": 30,
+  "units_per_day": 2.0,
+  "low_supply_threshold_days": 7
 }
+```
+
+Optional supply fields (all nullable / omit): `quantity_on_hand` (integer pills/units left), `units_per_day` (average consumption per calendar day), `low_supply_threshold_days` (warn when estimated days of supply ≤ this; default 7 when tracking).
 
 Caller must be: that patient, or a doctor connected to that patient (doctor_id must match when set).
 
@@ -192,6 +201,76 @@ Response 200:
 {
   "message": "Medicine deactivated"
 }
+```
+
+---
+
+## Medical documents (Cloudinary)
+
+Stored metadata in `medical_documents`; file bytes go to Cloudinary. Allowed types: PDF, JPEG, PNG, WebP (images are server-resized/re-encoded with Pillow before upload). Max processed size **20 MB**. Reviewers have **no** access to another patient's documents (`GET /api/documents/patient/{id}` is **doctor-only** and requires an active doctor–patient link).
+
+### Upload
+```
+POST /api/documents/upload
+[Protected]
+Content-Type: multipart/form-data
+
+Fields:
+  file: (binary) — required
+  patient_id: uuid — optional; only **doctors** may set this to upload into a **connected patient's** chart. Patients and doctors omit for self-upload.
+
+Response 200: document object (see list).
+```
+
+### List own documents
+```
+GET /api/documents/me
+[Protected]
+
+Response 200: array of:
+{
+  "id": "uuid",
+  "owner_profile_id": "uuid",
+  "uploaded_by": "uuid",
+  "cloudinary_public_id": "string",
+  "secure_url": "https://...",
+  "original_filename": "string",
+  "mime_type": "string",
+  "size_bytes": 12345,
+  "resource_type": "image" | "raw",
+  "title": "string",
+  "notes": "string" | null,
+  "created_at": "ISO8601",
+  "updated_at": "ISO8601" | null
+}
+```
+
+### List connected patient's documents (doctor only)
+```
+GET /api/documents/patient/{patient_id}
+[Protected]
+
+Caller: doctor with active `patient_doctor_connections` to `patient_id`. Returns same shape as `/me`.
+```
+
+### Update title / notes
+```
+PATCH /api/documents/{document_id}
+[Protected]
+Content-Type: application/json
+
+Body:
+{ "title": "string (1-200 chars)", "notes": "string" | null }
+
+Allowed: document owner, or doctor linked to the owner patient.
+```
+
+### Delete document + Cloudinary asset
+```
+DELETE /api/documents/{document_id}
+[Protected]
+
+Response 200: { "message": "Document deleted." }
 ```
 
 ---
@@ -438,7 +517,14 @@ Response 200:
       "statuses": [
         { "time": "08:00", "status": "taken", "confirmed_at": "2025-04-22T08:14:00Z" },
         { "time": "21:00", "status": "pending", "confirmed_at": null }
-      ]
+      ],
+      "quantity_on_hand": 30,
+      "units_per_day": 2.0,
+      "low_supply_threshold_days": 7,
+      "supply_tracked": true,
+      "supply_warning": false,
+      "supply_restock_message": null,
+      "estimated_days_of_supply": 15.0
     }
   ],
   "streak": {

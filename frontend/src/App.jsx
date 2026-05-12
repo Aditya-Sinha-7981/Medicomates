@@ -10,6 +10,8 @@ import PatientProfile from "./pages/PatientProfile";
 import Profile from "./pages/Profile";
 import Register from "./pages/Register";
 import Splash from "./pages/Splash";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import ReviewerView from "./pages/ReviewerView";
 import ReviewingListPage from "./pages/ReviewingListPage";
 import { getAuthToken, getCurrentUser } from "./utils/auth";
@@ -38,6 +40,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Splash />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/register" element={<Register />} />
           <Route path="/confirm" element={<ConfirmTaken />} />
 

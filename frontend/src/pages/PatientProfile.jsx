@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppShell from "../components/layout/AppShell";
+import MedicalDocumentsPanel from "../components/MedicalDocumentsPanel";
+import { Modal } from "../components/ui/Modal";
+import { useToast } from "../components/ui/ToastContext";
 import { getCurrentUser } from "../utils/auth";
 import { api, endpoints } from "../services/api.js";
 import InsightCard from "../components/InsightCard";
@@ -11,6 +14,7 @@ export default function PatientProfile() {
   const navigate = useNavigate();
   const { patientId } = useParams();
   const currentUser = getCurrentUser();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [baseLoaded, setBaseLoaded] = useState(false);
   const [error, setError] = useState("");
@@ -18,41 +22,36 @@ export default function PatientProfile() {
   const [visits, setVisits] = useState([]);
   const [notes, setNotes] = useState([]);
   const [profile, setProfile] = useState({});
+  const [removeTarget, setRemoveTarget] = useState(null);
+  const [removeLoading, setRemoveLoading] = useState(false);
+
+  const loadAll = useCallback(async () => {
+    if (!patientId || !currentUser?.id) return;
+    setLoading(true);
+    setError("");
+    setBaseLoaded(false);
+    try {
+      const [medicinesRes, visitsRes, notesRes, dashboardRes] = await Promise.all([
+        api.get(endpoints.medicines.list(patientId)),
+        api.get(endpoints.visits.list(patientId)),
+        api.get(endpoints.notes.thread(patientId, currentUser.id)),
+        api.get(endpoints.dashboard.patient(patientId)),
+      ]);
+      setMedicines(Array.isArray(medicinesRes) ? medicinesRes : []);
+      setVisits(Array.isArray(visitsRes) ? visitsRes : []);
+      setNotes(Array.isArray(notesRes) ? notesRes : []);
+      setProfile(dashboardRes?.profile || {});
+      setBaseLoaded(true);
+    } catch (err) {
+      setError(err.message || "Failed to load patient profile.");
+    } finally {
+      setLoading(false);
+    }
+  }, [patientId, currentUser?.id]);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!patientId || !currentUser?.id) {
-        if (!cancelled) setLoading(false);
-        return;
-      }
-      setLoading(true);
-      setError("");
-      setBaseLoaded(false);
-      try {
-        const [medicinesRes, visitsRes, notesRes, dashboardRes] =
-          await Promise.all([
-          api.get(endpoints.medicines.list(patientId)),
-          api.get(endpoints.visits.list(patientId)),
-          api.get(endpoints.notes.thread(patientId, currentUser.id)),
-          api.get(endpoints.dashboard.patient(patientId)),
-        ]);
-        if (cancelled) return;
-        setMedicines(Array.isArray(medicinesRes) ? medicinesRes : []);
-        setVisits(Array.isArray(visitsRes) ? visitsRes : []);
-        setNotes(Array.isArray(notesRes) ? notesRes : []);
-        setProfile(dashboardRes?.profile || {});
-        setBaseLoaded(true);
-      } catch (err) {
-        if (!cancelled) setError(err.message || "Failed to load patient profile.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [patientId, currentUser?.id]);
+    loadAll();
+  }, [loadAll]);
 
   const patientName = useMemo(() => {
     if (profile?.full_name) return profile.full_name;
@@ -64,6 +63,21 @@ export default function PatientProfile() {
   const allergies = useMemo(() => {
     return profile?.allergies || "Not provided";
   }, [profile?.allergies]);
+
+  const confirmRemove = async () => {
+    if (!removeTarget) return;
+    setRemoveLoading(true);
+    try {
+      await api.delete(endpoints.medicines.remove(removeTarget.id));
+      showToast({ message: "Medicine removed from plan.", variant: "success" });
+      setRemoveTarget(null);
+      await loadAll();
+    } catch (err) {
+      showToast({ message: err.message || "Failed to remove medicine.", variant: "error" });
+    } finally {
+      setRemoveLoading(false);
+    }
+  };
 
   return (
     <AppShell title="Patient Profile" subtitle="Medication and adherence summary">
@@ -95,6 +109,8 @@ export default function PatientProfile() {
 
           <InsightCard patientId={patientId} enabled={baseLoaded} />
 
+          <MedicalDocumentsPanel variant="patient" patientId={patientId} />
+
           <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
             <h2 className="text-base font-semibold text-slate-900">Current medicines</h2>
             {medicines.length ? (
@@ -102,7 +118,7 @@ export default function PatientProfile() {
                 {medicines.map((medicine) => (
                   <li
                     key={medicine.id}
-                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 flex items-center justify-between gap-3"
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
                       <p className="text-sm font-semibold text-slate-800">
@@ -113,22 +129,31 @@ export default function PatientProfile() {
                         {medicine.frequency} • {(medicine.reminder_times || []).join(", ")}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        navigate("/medicines", {
-                          state: {
-                            medicine,
-                            patientId,
-                            doctorMode: true,
-                            returnTo: `/patient/${patientId}`,
-                          },
-                        })
-                      }
-                      className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-                    >
-                      Edit
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate("/medicines", {
+                            state: {
+                              medicine,
+                              patientId,
+                              doctorMode: true,
+                              returnTo: `/patient/${patientId}`,
+                            },
+                          })
+                        }
+                        className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRemoveTarget({ id: medicine.id, name: medicine.name })}
+                        className="rounded-full border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -154,7 +179,29 @@ export default function PatientProfile() {
           </section>
         </div>
       )}
+
+      <Modal open={!!removeTarget} onClose={() => setRemoveTarget(null)} title="Remove medicine?">
+        <p className="text-sm text-slate-600">
+          Remove <span className="font-semibold">{removeTarget?.name}</span> from this patient&apos;s active plan?
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setRemoveTarget(null)}
+            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={confirmRemove}
+            disabled={removeLoading}
+            className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+          >
+            {removeLoading ? "Removing…" : "Remove"}
+          </button>
+        </div>
+      </Modal>
     </AppShell>
   );
 }
-
