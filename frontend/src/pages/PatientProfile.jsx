@@ -99,7 +99,7 @@ export default function PatientProfile() {
                     state: { patientId, doctorMode: true, returnTo: `/patient/${patientId}` },
                   })
                 }
-                className="inline-flex rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700"
+                className="inline-flex rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover"
               >
                 + Add Medicine
               </button>
@@ -116,7 +116,7 @@ export default function PatientProfile() {
             <Link
               to={`/patient/${patientId}/documents`}
               state={{ patientName }}
-              className="mt-4 inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700"
+              className="mt-4 inline-flex items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover"
             >
               Open medical documents
             </Link>

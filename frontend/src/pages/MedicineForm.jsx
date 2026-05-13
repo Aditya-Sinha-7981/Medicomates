@@ -393,7 +393,7 @@ export default function MedicineForm() {
         >
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand">
                 Medication plan
               </p>
               <h1 className="mt-1 text-2xl md:text-3xl font-semibold text-slate-900">
@@ -412,10 +412,10 @@ export default function MedicineForm() {
             </button>
           </div>
 
-          <section className="mb-6 rounded-2xl border border-sky-100 bg-sky-50/50 p-4 md:p-5">
+          <section className="mb-6 rounded-2xl border border-brand-soft-border bg-brand-soft/50 p-4 md:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-sky-600 shadow-sm">
+                <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-brand shadow-sm">
                   <FileImage className="h-5 w-5" />
                 </div>
                 <div>
@@ -425,7 +425,7 @@ export default function MedicineForm() {
                   </p>
                 </div>
               </div>
-              <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-sky-200 bg-white px-4 py-2.5 text-sm font-semibold text-sky-700 shadow-sm hover:bg-sky-50">
+              <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-brand-soft-border bg-white px-4 py-2.5 text-sm font-semibold text-brand shadow-sm hover:bg-brand-soft">
                 <input type="file" accept="image/jpeg,image/png" className="hidden" onChange={handleOcrFile} />
                 {ocrLoading ? "Reading…" : "Upload prescription"}
               </label>
@@ -451,7 +451,7 @@ export default function MedicineForm() {
                   onChange={handleChange}
                   required
                   placeholder="Enter medicine name"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 px-3.5 py-3 text-sm md:text-base text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 px-3.5 py-3 text-sm md:text-base text-slate-900 outline-none ring-0 transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand-soft-border"
                 />
               </div>
 
@@ -466,7 +466,7 @@ export default function MedicineForm() {
                   onChange={handleChange}
                   required
                   placeholder="Enter dosage"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 px-3.5 py-3 text-sm md:text-base text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 px-3.5 py-3 text-sm md:text-base text-slate-900 outline-none ring-0 transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand-soft-border"
                 />
               </div>
 
@@ -481,7 +481,7 @@ export default function MedicineForm() {
                   onChange={handleChange}
                   required
                   placeholder="Enter frequency"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 px-3.5 py-3 text-sm md:text-base text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 px-3.5 py-3 text-sm md:text-base text-slate-900 outline-none ring-0 transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand-soft-border"
                 />
               </div>
 
@@ -495,7 +495,7 @@ export default function MedicineForm() {
                   value={formData.notes || ""}
                   onChange={handleChange}
                   placeholder="Any special instruction for this medicine"
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 px-3.5 py-3 text-sm md:text-base text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 px-3.5 py-3 text-sm md:text-base text-slate-900 outline-none ring-0 transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand-soft-border"
                 />
               </div>
             </section>
@@ -565,7 +565,7 @@ export default function MedicineForm() {
                     value={formData.start_date || ""}
                     onChange={handleChange}
                     required
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 pl-9 pr-3.5 py-3 text-sm md:text-base text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 pl-9 pr-3.5 py-3 text-sm md:text-base text-slate-900 outline-none ring-0 transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand-soft-border"
                   />
                 </div>
               </div>
@@ -581,7 +581,7 @@ export default function MedicineForm() {
                     name="end_date"
                     value={formData.end_date || ""}
                     onChange={handleChange}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 pl-9 pr-3.5 py-3 text-sm md:text-base text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 pl-9 pr-3.5 py-3 text-sm md:text-base text-slate-900 outline-none ring-0 transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand-soft-border"
                   />
                 </div>
                 <p className="text-[11px] text-slate-400">
@@ -612,7 +612,7 @@ export default function MedicineForm() {
                         value={time}
                         onChange={(e) => handleTimeChange(index, e.target.value)}
                         required
-                        className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 pl-9 pr-3.5 py-3 text-sm md:text-base text-slate-900 outline-none ring-0 transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-100"
+                        className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 pl-9 pr-3.5 py-3 text-sm md:text-base text-slate-900 outline-none ring-0 transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand-soft-border"
                       />
                     </div>
                     {formData.reminder_times.length > 1 ? (
@@ -631,7 +631,7 @@ export default function MedicineForm() {
               <button
                 type="button"
                 onClick={addTime}
-                className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3.5 py-2 text-xs font-semibold text-sky-700 hover:bg-sky-100"
+                className="inline-flex items-center gap-2 rounded-full border border-brand-soft-border bg-brand-soft px-3.5 py-2 text-xs font-semibold text-brand hover:bg-brand-soft-border/60"
               >
                 <span className="text-base leading-none">+</span>
                 Add another time
@@ -656,7 +656,7 @@ export default function MedicineForm() {
               <button
                 type="submit"
                 disabled={loading || ocrLoading}
-                className="inline-flex items-center justify-center rounded-full bg-sky-600 px-6 md:px-8 py-3 text-sm md:text-base font-semibold text-white shadow-[0_14px_30px_rgba(37,99,235,0.45)] transition hover:bg-sky-700 disabled:opacity-60"
+                className="inline-flex items-center justify-center rounded-full bg-brand px-6 py-3 text-sm font-semibold text-white shadow-brand-glow transition hover:bg-brand-hover disabled:opacity-60 md:px-8 md:text-base"
               >
                 {loading ? "Saving..." : isEdit ? "Update medicine" : "Save medicine"}
               </button>

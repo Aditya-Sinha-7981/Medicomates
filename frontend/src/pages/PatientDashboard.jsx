@@ -102,7 +102,7 @@ export default function PatientDashboard() {
     return (
       <div className="p-6">
         <p className="text-red-500 mb-4">{error}</p>
-        <button onClick={refresh} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+        <button onClick={refresh} className="rounded-lg bg-brand px-4 py-2 text-white hover:bg-brand-hover">
           Retry
         </button>
       </div>
@@ -218,29 +218,29 @@ export default function PatientDashboard() {
     >
       <div className="space-y-6 md:space-y-7">
           <motion.header
-            className="relative overflow-hidden rounded-[30px] border border-sky-100 bg-gradient-to-br from-sky-600 via-sky-500 to-sky-700 px-5 py-5 md:px-7 md:py-7 text-white shadow-[0_26px_70px_rgba(15,23,42,0.65)]"
+            className="relative overflow-hidden rounded-[30px] border border-white/20 bg-gradient-to-br from-brand via-brand-hover to-accent px-5 py-5 text-white shadow-[0_26px_70px_rgba(15,23,42,0.65)] md:px-7 md:py-7"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3 md:gap-4">
-                <div className="flex h-11 w-11 md:h-12 md:w-12 items-center justify-center rounded-2xl bg-sky-50/15 text-lg font-semibold text-sky-50 backdrop-blur-sm border border-sky-200/30">
+                <div className="flex h-11 w-11 md:h-12 md:w-12 items-center justify-center rounded-2xl border border-white/25 bg-white/15 text-lg font-semibold text-white backdrop-blur-sm">
                   {initials}
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.23em] text-sky-100/80">
+                  <p className="text-xs font-semibold uppercase tracking-[0.23em] text-white/80">
                     Today • {todayLabel}
                   </p>
                   <h1 className="mt-1 text-2xl md:text-3xl font-semibold tracking-tight">
                     Good to see you, {dashboard?.profile?.full_name || "patient"}
                   </h1>
                   {dashboard?.profile?.allergies ? (
-                    <p className="mt-2 text-xs md:text-sm text-sky-100/90">
+                    <p className="mt-2 text-xs md:text-sm text-white/90">
                       Allergies:{" "}
-                      <span className="font-medium text-sky-50">{dashboard.profile.allergies}</span>
+                      <span className="font-medium text-white">{dashboard.profile.allergies}</span>
                     </p>
                   ) : null}
-                  <p className="mt-1 flex items-center gap-2 text-xs md:text-sm text-sky-50/90">
+                  <p className="mt-1 flex items-center gap-2 text-xs md:text-sm text-white/90">
                     <HeartPulse className="h-4 w-4" />
                     <span>
                       Small, consistent doses make the biggest difference. We’ll keep track for you.
@@ -250,10 +250,10 @@ export default function PatientDashboard() {
               </div>
               <div className="flex flex-col items-end gap-2">
                 <div
-                  className={`rounded-2xl px-3 py-2 text-[11px] md:text-xs shadow-sm shadow-sky-900/30 flex items-center gap-1.5 ${
+                  className={`rounded-2xl px-3 py-2 text-[11px] md:text-xs shadow-sm shadow-black/25 flex items-center gap-1.5 ${
                     weeklyNeedsAttention
                       ? "bg-rose-500/30 text-rose-50 ring-1 ring-rose-200/50"
-                      : "bg-sky-50/15 text-sky-50"
+                      : "bg-white/15 text-white"
                   }`}
                 >
                   <Sparkles className="h-3.5 w-3.5 shrink-0" />
@@ -300,19 +300,19 @@ export default function PatientDashboard() {
             </motion.div>
 
             <motion.div
-              className="rounded-3xl border border-emerald-100 bg-emerald-50/80 p-4 md:p-5 shadow-[0_14px_40px_rgba(4,120,87,0.20)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(4,120,87,0.25)]"
+              className="rounded-3xl border border-accent-soft-border bg-accent-soft/80 p-4 shadow-[0_14px_40px_rgba(4,120,87,0.15)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(4,120,87,0.2)] md:p-5"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700/80">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent-hover/90">
                 Doses today
               </p>
-              <div className="mt-2 flex items-end gap-2 text-emerald-800">
+              <div className="mt-2 flex items-end gap-2 text-accent-hover">
                 <span className="text-3xl font-semibold">
                   {takenDoseCount}/{todayDoseCount}
                 </span>
               </div>
-              <p className="mt-2 text-[11px] text-emerald-800/80">
+              <p className="mt-2 text-[11px] text-accent-hover/85">
                 Tap “Mark taken” once the dose is completed to keep this accurate.
               </p>
             </motion.div>
@@ -363,29 +363,29 @@ export default function PatientDashboard() {
           </section>
 
           {reviewingSorted.length > 0 ? (
-            <section className="rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-sky-50/30 p-5 md:p-6 shadow-[0_18px_50px_rgba(15,23,42,0.06)]">
+            <section className="rounded-3xl border border-brand-soft-border bg-gradient-to-br from-brand-soft via-white to-accent-soft/50 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.06)] md:p-6">
               <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-sm">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand text-white shadow-sm">
                     <Users className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-base md:text-lg font-semibold text-indigo-950">
+                    <h2 className="text-base font-semibold text-slate-900 md:text-lg">
                       People I&apos;m reviewing
                     </h2>
-                    <p className="mt-0.5 text-sm text-indigo-900/75">
+                    <p className="mt-0.5 text-sm text-slate-600">
                       Latest connections first. Use <span className="font-medium">Reviewing</span> in the
                       nav for the full list.
                     </p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:flex-col sm:items-end">
-                  <span className="inline-flex w-fit shrink-0 rounded-full bg-indigo-100 px-3 py-1.5 text-xs font-semibold text-indigo-900">
+                  <span className="inline-flex w-fit shrink-0 rounded-full bg-accent-soft px-3 py-1.5 text-xs font-semibold text-slate-800">
                     Showing {Math.min(4, reviewingSorted.length)} of {reviewingSorted.length}
                   </span>
                   <Link
                     to="/reviewing"
-                    className="text-xs font-semibold text-indigo-700 hover:text-indigo-900 sm:text-right"
+                    className="text-xs font-semibold text-brand hover:text-brand-hover sm:text-right"
                   >
                     View all
                   </Link>
@@ -395,10 +395,10 @@ export default function PatientDashboard() {
                 {reviewingPreview.map((pat) => (
                   <div
                     key={pat.patient_id}
-                    className="flex items-center justify-between gap-3 rounded-2xl border border-indigo-100 bg-white px-4 py-3 shadow-sm"
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-brand-soft-border bg-white px-4 py-3 shadow-sm"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-sm font-semibold text-indigo-800">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-sm font-semibold text-slate-800">
                         {(pat.full_name || "P").charAt(0)}
                       </div>
                       <p className="truncate text-sm font-semibold text-slate-900">{pat.full_name}</p>
@@ -406,7 +406,7 @@ export default function PatientDashboard() {
                     <button
                       type="button"
                       onClick={() => navigate(`/review/${pat.patient_id}`)}
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700"
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand px-3 py-2 text-xs font-semibold text-white hover:bg-brand-hover"
                     >
                       <Eye className="h-3.5 w-3.5" />
                       View
@@ -422,7 +422,7 @@ export default function PatientDashboard() {
               <section className="flex flex-col gap-3 sm:flex-row">
                 <button
                   onClick={() => navigate("/medicine/new")}
-                  className="flex-1 rounded-full bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_16px_45px_rgba(37,99,235,0.55)] transition-all duration-300 hover:bg-sky-700 hover:scale-[1.02] active:scale-[0.98]"
+                  className="flex-1 rounded-full bg-brand px-4 py-3 text-sm font-semibold text-white shadow-brand-glow transition-all duration-300 hover:bg-brand-hover hover:scale-[1.02] active:scale-[0.98]"
                 >
                   + Add medicine
                 </button>
@@ -556,7 +556,7 @@ export default function PatientDashboard() {
                         key={doctor.doctor_id}
                         className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/60 px-3.5 py-3"
                       >
-                        <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-sky-100 text-sm font-semibold text-sky-700">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-brand-soft text-sm font-semibold text-brand">
                           {(doctor.full_name || "D").charAt(0)}
                         </div>
                         <div>
@@ -595,19 +595,19 @@ export default function PatientDashboard() {
                       placeholder="Add reviewer by email..."
                       value={searchEmail}
                       onChange={(e) => setSearchEmail(e.target.value)}
-                      className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-sky-500 focus:outline-none"
+                      className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-brand focus:outline-none"
                     />
                     <button 
                       type="submit"
                       disabled={isSearching}
-                      className="rounded-xl bg-sky-600 px-3 py-2 text-white hover:bg-sky-700 disabled:opacity-60"
+                      className="rounded-xl bg-brand px-3 py-2 text-white hover:bg-brand-hover disabled:opacity-60"
                     >
                       <Search className="h-4 w-4" />
                     </button>
                   </form>
                   {searchError && <p className="mt-2 text-xs text-rose-600">{searchError}</p>}
                   {searchResult && (
-                    <div className="mt-3 rounded-xl border border-sky-100 bg-sky-50 p-3">
+                    <div className="mt-3 rounded-xl border border-brand-soft-border bg-brand-soft p-3">
                       <p className="text-sm font-semibold">{searchResult.full_name}</p>
                       <button 
                         onClick={handleSendReviewerRequest}
@@ -624,7 +624,7 @@ export default function PatientDashboard() {
                   <ul className="space-y-3 mb-4">
                     {reviewers.map((rev) => (
                       <li key={rev.reviewer_id} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-3.5 py-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-100 text-sm font-semibold text-indigo-700">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-accent-soft text-sm font-semibold text-accent-hover">
                           {(rev.full_name || "R").charAt(0)}
                         </div>
                         <div>
@@ -660,10 +660,10 @@ export default function PatientDashboard() {
                     {recentVisits.map((visit) => (
                       <li
                         key={visit.id}
-                        className="relative border-l-2 border-sky-100 pl-4 text-sm text-slate-700"
+                        className="relative border-l-2 border-brand-soft-border pl-4 text-sm text-slate-700"
                       >
-                        <span className="absolute left-[-5px] top-1 h-2 w-2 rounded-full bg-sky-500" />
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-500">
+                        <span className="absolute left-[-5px] top-1 h-2 w-2 rounded-full bg-accent" />
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
                           {new Date(visit.visit_date).toLocaleDateString()}
                         </p>
                         <p className="mt-0.5 font-semibold">{visit.doctor_name}</p>

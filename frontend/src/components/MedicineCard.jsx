@@ -35,7 +35,7 @@ export default function MedicineCard({
       animate={{ opacity: 1, y: 0 }}
     >
       <div className="flex items-start gap-3 md:gap-4">
-        <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+        <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-soft text-brand">
           <Pill className="h-5 w-5" />
         </div>
         <div className="flex-1 space-y-1">
@@ -77,7 +77,7 @@ export default function MedicineCard({
                     <button
                       type="button"
                       onClick={() => onMarkTaken?.(medicine.medicine_id, statusItem.time)}
-                      className="ml-1 rounded-full bg-blue-500 text-white px-2 py-0.5 text-[10px] font-semibold hover:bg-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70"
+                      className="ml-1 rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold text-white hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                     >
                       Mark taken
                     </button>

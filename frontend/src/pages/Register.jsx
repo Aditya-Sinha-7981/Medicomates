@@ -43,7 +43,7 @@ export default function Register() {
             onClick={() => setForm((prev) => ({ ...prev, role: "patient" }))}
             className={`rounded-2xl border px-4 py-4 text-center transition ${
               form.role === "patient"
-                ? "border-[#2a79e8] bg-blue-50 text-[#2a79e8]"
+                ? "border-brand bg-brand-soft text-brand"
                 : "border-slate-100 bg-slate-50 text-slate-700"
             }`}
           >
@@ -55,7 +55,7 @@ export default function Register() {
             onClick={() => setForm((prev) => ({ ...prev, role: "doctor" }))}
             className={`rounded-2xl border px-4 py-4 text-center transition ${
               form.role === "doctor"
-                ? "border-[#2a79e8] bg-blue-50 text-[#2a79e8]"
+                ? "border-brand bg-brand-soft text-brand"
                 : "border-slate-100 bg-slate-50 text-slate-700"
             }`}
           >
@@ -69,7 +69,7 @@ export default function Register() {
           <input
             required
             placeholder="John Doe"
-            className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 text-lg text-slate-800 outline-none focus:border-blue-500"
+            className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 text-lg text-slate-800 outline-none focus:border-brand"
             value={form.full_name}
             onChange={(event) => setForm((prev) => ({ ...prev, full_name: event.target.value }))}
           />
@@ -81,7 +81,7 @@ export default function Register() {
             type="email"
             required
             placeholder="john.doe@email.com"
-            className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 text-lg text-slate-800 outline-none focus:border-blue-500"
+            className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 text-lg text-slate-800 outline-none focus:border-brand"
             value={form.email}
             onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
           />
@@ -94,7 +94,7 @@ export default function Register() {
               type={showPassword ? "text" : "password"}
               required
               placeholder="Minimum 8 characters"
-              className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 pr-12 text-lg text-slate-800 outline-none focus:border-blue-500"
+              className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 pr-12 text-lg text-slate-800 outline-none focus:border-brand"
               value={form.password}
               onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
             />
@@ -113,7 +113,7 @@ export default function Register() {
         <button
           type="submit"
           disabled={loading}
-          className="h-14 w-full rounded-2xl bg-[#2a79e8] text-2xl font-semibold text-white shadow-[0_10px_24px_rgba(42,121,232,0.35)] transition hover:bg-[#1f67d2] disabled:opacity-50"
+          className="h-14 w-full rounded-2xl bg-brand text-2xl font-semibold text-white shadow-brand-glow transition hover:bg-brand-hover disabled:opacity-50"
         >
             {loading ? "Creating account..." : "Create Account"}
         </button>
@@ -121,7 +121,7 @@ export default function Register() {
 
       <p className="mt-8 text-center text-lg">
         <span className="text-slate-700">Already registered? </span>
-        <Link to="/login" className="font-semibold text-[#2a79e8]">
+        <Link to="/login" className="font-semibold text-brand">
           Login
         </Link>
       </p>

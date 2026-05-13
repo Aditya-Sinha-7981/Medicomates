@@ -79,10 +79,10 @@ export default function ReviewingListPage() {
           {sorted.map((pat) => (
             <div
               key={pat.patient_id}
-              className="flex items-center justify-between gap-3 rounded-2xl border border-indigo-100 bg-white px-4 py-3 shadow-sm"
+              className="flex items-center justify-between gap-3 rounded-2xl border border-brand-soft-border bg-white px-4 py-3 shadow-sm"
             >
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-indigo-100 text-sm font-semibold text-indigo-800">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-sm font-semibold text-slate-800">
                   {(pat.full_name || "P").charAt(0)}
                 </div>
                 <p className="truncate text-sm font-semibold text-slate-900">{pat.full_name}</p>
@@ -90,7 +90,7 @@ export default function ReviewingListPage() {
               <button
                 type="button"
                 onClick={() => navigate(`/review/${pat.patient_id}`)}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand px-3 py-2 text-xs font-semibold text-white hover:bg-brand-hover"
               >
                 <Eye className="h-3.5 w-3.5" />
                 View

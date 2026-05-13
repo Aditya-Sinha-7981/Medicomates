@@ -34,10 +34,13 @@ export default function InsightCard({ patientId, enabled = true }) {
   return (
     <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
       <div className="flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-violet-500" />
+        <Sparkles className="h-4 w-4 text-accent" />
         <h2 className="text-base font-semibold text-slate-900">AI insight</h2>
-        <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
-          Local + Gemini
+        <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-semibold text-brand">
+          Local
+        </span>
+        <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent-hover">
+          + Gemini
         </span>
       </div>
       {loading ? (

@@ -145,7 +145,7 @@ export default function DoctorDashboard() {
                   </span>
                   <Link
                     to="/doctor/patients"
-                    className="font-semibold text-sky-600 hover:text-sky-700"
+                    className="font-semibold text-brand hover:text-brand-hover"
                   >
                     View all
                   </Link>
@@ -197,7 +197,7 @@ export default function DoctorDashboard() {
               <button 
                 type="submit"
                 disabled={isSearching}
-                className="rounded-xl bg-sky-600 px-3 py-2 text-white shadow-sm hover:bg-sky-700 disabled:opacity-60"
+                className="rounded-xl bg-brand px-3 py-2 text-white shadow-sm hover:bg-brand-hover disabled:opacity-60"
               >
                 <Search className="h-4 w-4" />
               </button>
