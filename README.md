@@ -130,9 +130,3 @@ Run specific files as needed (see `backend/test_*.py`).
 
 - Start with [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md).
 - For a **narrated walkthrough** of modules, pitfalls, and design tradeoffs, see [`logs/CODEBASE_AND_CHALLENGES.md`](logs/CODEBASE_AND_CHALLENGES.md) (written for teammates and AI context).
-
----
-
-## License
-
-Specify your team’s license here before open-sourcing (if applicable).
