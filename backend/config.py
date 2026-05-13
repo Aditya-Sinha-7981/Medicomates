@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str = ""
     CLOUDINARY_API_SECRET: str = ""
 
+    # Local insight model (Ollama) — used first for adherence insight text.
+    # If Ollama is unavailable, we fall back to Gemini.
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_INSIGHT_MODEL: str = "llama3.1:8b-instruct"
+    OLLAMA_TIMEOUT_SECONDS: int = 8
+    OLLAMA_TEMPERATURE: float = 0.2
+    OLLAMA_NUM_PREDICT: int = 180
+
     @field_validator(
         "SUPABASE_URL",
         "SUPABASE_SERVICE_KEY",
