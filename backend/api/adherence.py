@@ -13,6 +13,11 @@ from utils.token import generate_token, validate_token
 
 router = APIRouter(prefix="/adherence", tags=["adherence"])
 
+# Columns needed for list/summary endpoints (avoid `*` — smaller rows over the wire).
+_ADHERENCE_LOG_LIST_COLUMNS = (
+    "id, medicine_id, patient_id, scheduled_time, confirmed_at, token, token_used, created_at"
+)
+
 
 @router.get("/confirm")
 async def confirm_taken(token: str):
@@ -136,7 +141,7 @@ async def get_adherence_logs(
     # Fetch logs
     logs_result = (
         supabase.table("adherence_logs")
-        .select("*")
+        .select(_ADHERENCE_LOG_LIST_COLUMNS)
         .eq("patient_id", patient_id)
         .gte("scheduled_time", cutoff)
         .order("scheduled_time", desc=True)
@@ -168,7 +173,7 @@ async def get_adherence_summary(
 
     logs_result = (
         supabase.table("adherence_logs")
-        .select("*")
+        .select(_ADHERENCE_LOG_LIST_COLUMNS)
         .eq("patient_id", patient_id)
         .gte("scheduled_time", cutoff)
         .execute()
