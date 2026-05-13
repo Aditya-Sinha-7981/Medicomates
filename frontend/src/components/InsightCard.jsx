@@ -37,7 +37,7 @@ export default function InsightCard({ patientId, enabled = true }) {
         <Sparkles className="h-4 w-4 text-violet-500" />
         <h2 className="text-base font-semibold text-slate-900">AI insight</h2>
         <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
-          Gemini
+          Local + Gemini
         </span>
       </div>
       {loading ? (
@@ -50,9 +50,14 @@ export default function InsightCard({ patientId, enabled = true }) {
       ) : error ? (
         <p className="mt-3 text-sm text-slate-500">Insight unavailable right now.</p>
       ) : (
-        <p className="mt-3 text-sm text-slate-700">
-          {insight || "Insight unavailable right now."}
-        </p>
+        <>
+          <p className="mt-3 text-sm text-slate-700">
+            {insight || "Insight unavailable right now."}
+          </p>
+          <p className="mt-2 text-[11px] text-slate-500">
+            For informational purposes only. Not medical advice.
+          </p>
+        </>
       )}
     </section>
   );
