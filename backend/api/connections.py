@@ -10,6 +10,7 @@ Tables used:
   patient_reviewer_connections — live reviewer links
 """
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -19,6 +20,7 @@ from config import settings
 from models.schemas import ConnectionRequestSchema, DoctorConnectionSchema, ReviewerConnectionSchema
 from utils.adherence_stats import calculate_time_window_percentage
 from utils.auth import get_current_user
+from utils.supabase_batch import ADHERENCE_WINDOW_COLUMNS, chunked_ids
 from utils.supabase_client import supabase
 
 logger = logging.getLogger(__name__)
@@ -391,29 +393,45 @@ async def get_doctor_patients(doctor_id: str, current_user: dict = Depends(get_c
 
     now = datetime.now(timezone.utc)
     week_start = now - timedelta(days=7)
+    week_start_iso = week_start.isoformat()
+
+    patient_ids = [str(r["patient_id"]) for r in rows]
+    unique_patient_ids = list(dict.fromkeys(patient_ids))
+    name_by_id: dict[str, str] = {}
+    logs_by_patient: dict[str, list[dict]] = defaultdict(list)
+
+    for chunk in chunked_ids(unique_patient_ids):
+        prof_chunk = (
+            supabase.table("profiles")
+            .select("id, full_name")
+            .in_("id", chunk)
+            .execute()
+        )
+        for p in prof_chunk.data or []:
+            pid = p.get("id")
+            if pid:
+                name_by_id[str(pid)] = (p.get("full_name") or "").strip() or "Unknown"
+
+        logs_chunk = (
+            supabase.table("adherence_logs")
+            .select(ADHERENCE_WINDOW_COLUMNS)
+            .in_("patient_id", chunk)
+            .gte("scheduled_time", week_start_iso)
+            .execute()
+        )
+        for log in logs_chunk.data or []:
+            pid = log.get("patient_id")
+            if pid:
+                logs_by_patient[str(pid)].append(log)
+
     out = []
     for row in rows:
-        patient_id = row["patient_id"]
-        profile_res = (
-            supabase.table("profiles")
-            .select("full_name")
-            .eq("id", patient_id)
-            .single()
-            .execute()
-        )
-        profile = profile_res.data or {}
-        logs_res = (
-            supabase.table("adherence_logs")
-            .select("*")
-            .eq("patient_id", patient_id)
-            .gte("scheduled_time", week_start.isoformat())
-            .execute()
-        )
-        logs = logs_res.data or []
+        patient_id = str(row["patient_id"])
+        logs = logs_by_patient.get(patient_id, [])
         weekly_percentage = calculate_time_window_percentage(logs, week_start, now)
         out.append({
             "patient_id": patient_id,
-            "full_name": profile.get("full_name", "Unknown"),
+            "full_name": name_by_id.get(patient_id, "Unknown"),
             "connected_at": row.get("connected_at"),
             "weekly_adherence_percentage": weekly_percentage,
         })

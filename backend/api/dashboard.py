@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
@@ -7,9 +8,21 @@ from config import settings
 from services.insight_service import generate_insight
 from utils.adherence_stats import calculate_streak, calculate_time_window_percentage, compute_status
 from utils.auth import get_current_user
+from utils.supabase_batch import ADHERENCE_WINDOW_COLUMNS, chunked_ids
 from utils.supabase_client import supabase
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+# Narrow selects for PostgREST: less IO than `*` and clearer index use on large tables.
+_DASHBOARD_LOG_COLUMNS = "id, medicine_id, patient_id, scheduled_time, confirmed_at"
+_DOCTOR_LIST_LOG_COLUMNS = ADHERENCE_WINDOW_COLUMNS
+_DASHBOARD_MEDICINE_COLUMNS = (
+    "id, name, dosage, reminder_times, quantity_on_hand, units_per_day, "
+    "low_supply_threshold_days, patient_id"
+)
+_REVIEWER_30D_LOG_COLUMNS = (
+    "id, medicine_id, patient_id, scheduled_time, confirmed_at, medicines(name)"
+)
 
 
 def _supply_meta(med: dict) -> dict:
@@ -58,7 +71,13 @@ async def get_patient_dashboard(patient_id: str, current_user: dict = Depends(ge
     # 2. Adherence Logs
     # Fetch enough logs to compute streaks and last two weeks
     cutoff = (datetime.now(timezone.utc) - timedelta(days=60)).isoformat()
-    logs_result = supabase.table("adherence_logs").select("*").eq("patient_id", patient_id).gte("scheduled_time", cutoff).execute()
+    logs_result = (
+        supabase.table("adherence_logs")
+        .select(_DASHBOARD_LOG_COLUMNS)
+        .eq("patient_id", patient_id)
+        .gte("scheduled_time", cutoff)
+        .execute()
+    )
     logs = logs_result.data or []
 
     # 3. Streak
@@ -76,7 +95,13 @@ async def get_patient_dashboard(patient_id: str, current_user: dict = Depends(ge
     app_tz = ZoneInfo(settings.SCHEDULER_TIMEZONE)
     today_local = now.astimezone(app_tz).date()
 
-    meds_result = supabase.table("medicines").select("*").eq("patient_id", patient_id).eq("is_active", True).execute()
+    meds_result = (
+        supabase.table("medicines")
+        .select(_DASHBOARD_MEDICINE_COLUMNS)
+        .eq("patient_id", patient_id)
+        .eq("is_active", True)
+        .execute()
+    )
     meds = meds_result.data or []
 
     today_log_map = {}
@@ -171,40 +196,56 @@ async def get_doctor_dashboard(doctor_id: str, current_user: dict = Depends(get_
 
     connections_sorted = sorted(connections, key=_conn_sort_key, reverse=True)
 
-    patients_list = []
     now = datetime.now(timezone.utc)
     # Doctor list cards: rolling adherence over last 30 days (scheduled doses in window).
     start_30d = now - timedelta(days=30)
+    start_30d_iso = start_30d.isoformat()
 
+    patient_ids = [str(c["patient_id"]) for c in connections_sorted]
+    unique_patient_ids = list(dict.fromkeys(patient_ids))
+    name_by_id: dict[str, str] = {}
+    logs_by_patient: dict[str, list[dict]] = defaultdict(list)
+
+    if unique_patient_ids:
+        for chunk in chunked_ids(unique_patient_ids):
+            prof_chunk = (
+                supabase.table("profiles")
+                .select("id, full_name")
+                .in_("id", chunk)
+                .execute()
+            )
+            for row in prof_chunk.data or []:
+                pid = row.get("id")
+                if pid:
+                    name_by_id[str(pid)] = (row.get("full_name") or "").strip() or "Unknown"
+
+            logs_chunk = (
+                supabase.table("adherence_logs")
+                .select(_DOCTOR_LIST_LOG_COLUMNS)
+                .in_("patient_id", chunk)
+                .gte("scheduled_time", start_30d_iso)
+                .execute()
+            )
+            for row in logs_chunk.data or []:
+                pid = row.get("patient_id")
+                if pid:
+                    logs_by_patient[str(pid)].append(row)
+
+    patients_list = []
     for conn in connections_sorted:
-        pat_id = conn["patient_id"]
-        profile_res = (
-            supabase.table("profiles")
-            .select("full_name")
-            .eq("id", pat_id)
-            .single()
-            .execute()
-        )
-        full_name = (profile_res.data or {}).get("full_name") or "Unknown"
-
-        logs_result = (
-            supabase.table("adherence_logs")
-            .select("*")
-            .eq("patient_id", pat_id)
-            .gte("scheduled_time", start_30d.isoformat())
-            .execute()
-        )
-        logs = logs_result.data or []
-
+        pat_id = str(conn["patient_id"])
+        full_name = name_by_id.get(pat_id, "Unknown")
+        logs = logs_by_patient.get(pat_id, [])
         rolling_30d_percentage = calculate_time_window_percentage(logs, start_30d, now)
-
-        patients_list.append({
-            "patient_id": pat_id,
-            "full_name": full_name,
-            "weekly_percentage": rolling_30d_percentage,
-            "needs_attention": rolling_30d_percentage < 60,
-            "connected_at": conn.get("connected_at"),
-        })
+        patients_list.append(
+            {
+                "patient_id": pat_id,
+                "full_name": full_name,
+                "weekly_percentage": rolling_30d_percentage,
+                "needs_attention": rolling_30d_percentage < 60,
+                "connected_at": conn.get("connected_at"),
+            }
+        )
 
     return {"profile": profile, "patients": patients_list}
 
@@ -245,7 +286,13 @@ async def get_reviewer_dashboard(patient_id: str, current_user: dict = Depends(g
     profile = profile_result.data[0] if profile_result.data else {}
 
     cutoff = (datetime.now(timezone.utc) - timedelta(days=60)).isoformat()
-    logs_result = supabase.table("adherence_logs").select("*").eq("patient_id", patient_id).gte("scheduled_time", cutoff).execute()
+    logs_result = (
+        supabase.table("adherence_logs")
+        .select(_DASHBOARD_LOG_COLUMNS)
+        .eq("patient_id", patient_id)
+        .gte("scheduled_time", cutoff)
+        .execute()
+    )
     logs = logs_result.data or []
 
     streak = calculate_streak(logs)
@@ -260,7 +307,13 @@ async def get_reviewer_dashboard(patient_id: str, current_user: dict = Depends(g
     app_tz = ZoneInfo(settings.SCHEDULER_TIMEZONE)
     today_local = now.astimezone(app_tz).date()
 
-    meds_result = supabase.table("medicines").select("*").eq("patient_id", patient_id).eq("is_active", True).execute()
+    meds_result = (
+        supabase.table("medicines")
+        .select(_DASHBOARD_MEDICINE_COLUMNS)
+        .eq("patient_id", patient_id)
+        .eq("is_active", True)
+        .execute()
+    )
     meds = meds_result.data or []
 
     today_log_map = {}
@@ -308,7 +361,13 @@ async def get_reviewer_dashboard(patient_id: str, current_user: dict = Depends(g
         )
 
     # Also return the full 30-day adherence logs so the calendar can render
-    adherence_30d = supabase.table("adherence_logs").select("*, medicines(name)").eq("patient_id", patient_id).gte("scheduled_time", (now - timedelta(days=30)).isoformat()).execute()
+    adherence_30d = (
+        supabase.table("adherence_logs")
+        .select(_REVIEWER_30D_LOG_COLUMNS)
+        .eq("patient_id", patient_id)
+        .gte("scheduled_time", (now - timedelta(days=30)).isoformat())
+        .execute()
+    )
     adherence_rows = adherence_30d.data or []
     for log in adherence_rows:
         log["status"] = compute_status(log["scheduled_time"], log.get("confirmed_at"))

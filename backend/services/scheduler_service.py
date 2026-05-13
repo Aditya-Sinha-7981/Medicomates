@@ -16,7 +16,7 @@ def reschedule_all_active_medicines() -> None:
     try:
         result = (
             supabase.table("medicines")
-            .select("*")
+            .select("id, reminder_times")
             .eq("is_active", True)
             .execute()
         )
@@ -70,7 +70,10 @@ def reschedule_medicine(medicine_id: str, new_times: list) -> None:
 
 def send_reminder_for_medicine(medicine_id: str) -> None:
     med_result = (
-        supabase.table("medicines").select("*").eq("id", medicine_id).execute()
+        supabase.table("medicines")
+        .select("id, patient_id, name, dosage, is_active")
+        .eq("id", medicine_id)
+        .execute()
     )
     if not med_result.data:
         logger.warning("Reminder skipped — medicine_id=%s not found", medicine_id)

@@ -160,7 +160,10 @@ async def generate_insight(patient_id: str) -> str:
 
     result = (
         supabase.table("adherence_logs")
-        .select("*, medicines(name, dosage, reminder_times)")
+        .select(
+            "id, medicine_id, patient_id, scheduled_time, confirmed_at, "
+            "medicines(name, dosage, reminder_times)"
+        )
         .eq("patient_id", patient_id)
         .gte("scheduled_time", thirty_days_ago_iso)
         .execute()
