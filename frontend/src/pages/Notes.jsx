@@ -202,7 +202,7 @@ export default function Notes() {
               type="button"
               onClick={sendNote}
               disabled={!doctorId || sending || !text.trim()}
-              className="inline-flex items-center gap-1 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              className="inline-flex items-center gap-1 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-hover disabled:opacity-50"
             >
               <Send className="h-4 w-4" />
               Send

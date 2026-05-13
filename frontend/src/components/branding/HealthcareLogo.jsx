@@ -1,8 +1,8 @@
 export default function HealthcareLogo({
   iconClassName = "h-8 w-8",
-  strokeClassName = "text-[#2f77b8]",
+  strokeClassName = "text-brand-muted",
   showWordmark = false,
-  wordmarkClassName = "mt-1 text-[9px] font-semibold tracking-[0.08em] text-[#2f77b8]",
+  wordmarkClassName = "mt-1 text-[9px] font-semibold tracking-[0.08em] text-brand-muted",
 }) {
   return (
     <div className="inline-flex flex-col items-center justify-center">

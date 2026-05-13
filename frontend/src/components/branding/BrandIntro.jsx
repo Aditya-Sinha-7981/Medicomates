@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import BrandMark from "./BrandMark";
 
 export default function BrandIntro({ onComplete }) {
   const [isVisible, setIsVisible] = useState(true);
@@ -9,7 +10,7 @@ export default function BrandIntro({ onComplete }) {
       setIsVisible(false);
       setTimeout(() => {
         if (onComplete) onComplete();
-      }, 500); // Wait for exit animation
+      }, 500);
     }, 2000);
 
     return () => clearTimeout(timer);
@@ -23,30 +24,34 @@ export default function BrandIntro({ onComplete }) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, filter: "blur(10px)" }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#f5f7fb]"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-surface"
         >
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 20, scale: 0.92 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-            className="flex flex-col items-center gap-4"
+            transition={{ duration: 0.75, ease: "easeOut", delay: 0.12 }}
+            className="flex flex-col items-center gap-5 px-6"
           >
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-900">
-              Medico<span className="text-blue-600">Mates</span>
-            </h1>
-            <motion.div 
-              initial={{ opacity: 0, width: 0 }}
-              animate={{ opacity: 1, width: "100%" }}
-              transition={{ duration: 1, delay: 0.8, ease: "easeInOut" }}
-              className="h-1 bg-blue-100 rounded-full overflow-hidden"
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 280, damping: 20 }}
+              className="flex h-28 w-28 items-center justify-center rounded-[28px] bg-white shadow-brand-glow"
             >
-              <motion.div 
-                className="h-full bg-blue-600 rounded-full"
+              <BrandMark className="h-20 w-20" />
+            </motion.div>
+            <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
+              <span className="text-brand">Medico</span>
+              <span className="text-accent">Mates</span>
+            </h1>
+            <div className="h-1 w-48 max-w-[min(320px,80vw)] overflow-hidden rounded-full bg-brand-soft sm:w-64">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-brand to-accent"
                 initial={{ width: "0%" }}
                 animate={{ width: "100%" }}
-                transition={{ duration: 1.5, ease: "linear" }}
+                transition={{ duration: 1.45, ease: "linear", delay: 0.35 }}
               />
-            </motion.div>
+            </div>
           </motion.div>
         </motion.div>
       )}

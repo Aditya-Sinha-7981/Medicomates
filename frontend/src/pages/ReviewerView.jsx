@@ -104,27 +104,27 @@ export default function ReviewerView() {
     >
       <div className="space-y-6 md:space-y-7">
         <motion.header
-          className="relative overflow-hidden rounded-[30px] border border-indigo-100 bg-gradient-to-br from-indigo-600 via-indigo-500 to-indigo-700 px-5 py-5 md:px-7 md:py-7 text-white shadow-sm"
+          className="relative overflow-hidden rounded-[30px] border border-white/20 bg-gradient-to-br from-brand via-brand-hover to-accent px-5 py-5 text-white shadow-sm md:px-7 md:py-7"
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
         >
           <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex items-start gap-3 md:gap-4">
-              <div className="flex h-11 w-11 md:h-12 md:w-12 items-center justify-center rounded-2xl bg-indigo-50/15 text-lg font-semibold text-indigo-50 backdrop-blur-sm border border-indigo-200/30">
+              <div className="flex h-11 w-11 md:h-12 md:w-12 items-center justify-center rounded-2xl border border-white/25 bg-white/15 text-lg font-semibold text-white backdrop-blur-sm">
                 {initials}
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.23em] text-indigo-100/80">
+                <p className="text-xs font-semibold uppercase tracking-[0.23em] text-white/80">
                   Viewing • {todayLabel}
                 </p>
                 <h1 className="mt-1 text-2xl md:text-3xl font-semibold tracking-tight">
                   {dashboard?.profile?.full_name || "Patient"}
                 </h1>
                 {dashboard?.profile?.allergies && (
-                  <p className="mt-2 text-xs md:text-sm text-indigo-100/90">
-                    Allergies: <span className="font-medium text-indigo-50">{dashboard.profile.allergies}</span>
+                  <p className="mt-2 text-xs md:text-sm text-white/90">
+                    Allergies: <span className="font-medium text-white">{dashboard.profile.allergies}</span>
                   </p>
                 )}
-                <p className="mt-1 flex items-center gap-2 text-xs md:text-sm text-indigo-50/90">
+                <p className="mt-1 flex items-center gap-2 text-xs md:text-sm text-white/90">
                   <HeartPulse className="h-4 w-4" />
                   Read-only reviewer mode
                 </p>
@@ -161,9 +161,9 @@ export default function ReviewerView() {
             </div>
           </motion.div>
 
-          <motion.div className="rounded-3xl border border-emerald-100 bg-emerald-50/80 p-4 md:p-5 shadow-sm" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700/80">Doses today</p>
-            <div className="mt-2 flex items-end gap-2 text-emerald-800">
+          <motion.div className="rounded-3xl border border-accent-soft-border bg-accent-soft/80 p-4 shadow-sm md:p-5" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-accent-hover/90">Doses today</p>
+            <div className="mt-2 flex items-end gap-2 text-accent-hover">
               <span className="text-3xl font-semibold">{takenDoseCount}/{todayDoseCount}</span>
             </div>
           </motion.div>

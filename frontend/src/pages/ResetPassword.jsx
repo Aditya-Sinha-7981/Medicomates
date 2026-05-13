@@ -97,14 +97,14 @@ export default function ResetPassword() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-sky-600 py-2.5 font-semibold text-white hover:bg-sky-700 disabled:opacity-60"
+            className="w-full rounded-xl bg-brand py-2.5 font-semibold text-white hover:bg-brand-hover disabled:opacity-60"
           >
             {loading ? "Saving…" : "Update password"}
           </button>
         </form>
       )}
       <p className="mt-6 text-center text-sm text-slate-500">
-        <Link to="/login" className="font-medium text-sky-600 hover:text-sky-700">
+        <Link to="/login" className="font-medium text-brand hover:text-brand-hover">
           Back to sign in
         </Link>
       </p>
