@@ -62,6 +62,37 @@ def _supply_meta(med: dict) -> dict:
     return base
 
 
+def _norm_hm_str(hm: str) -> str:
+    h, m = map(int, str(hm).strip().split(":"))
+    return f"{h:02d}:{m:02d}"
+
+
+def _hm_to_minutes(hm: str) -> int:
+    h, m = map(int, str(hm).strip().split(":"))
+    return h * 60 + m
+
+
+def _circ_minutes(a: int, b: int) -> int:
+    d = abs(a - b)
+    return min(d, 1440 - d)
+
+
+def _nearest_reminder_rt_label(local_hm: str, reminder_times: list[str]) -> str:
+    """Which reminder slot (normalized HH:MM) a log's local wall clock belongs to."""
+    if not reminder_times:
+        return _norm_hm_str(local_hm)
+    cur = _hm_to_minutes(local_hm)
+    best = _norm_hm_str(reminder_times[0])
+    best_d = _circ_minutes(cur, _hm_to_minutes(best))
+    for rt in reminder_times[1:]:
+        ns = _norm_hm_str(rt)
+        d = _circ_minutes(cur, _hm_to_minutes(ns))
+        if d < best_d:
+            best_d = d
+            best = ns
+    return best
+
+
 @router.get("/patient/{patient_id}")
 async def get_patient_dashboard(patient_id: str, current_user: dict = Depends(get_current_user)):
     # 1. Profile
@@ -104,6 +135,10 @@ async def get_patient_dashboard(patient_id: str, current_user: dict = Depends(ge
     )
     meds = meds_result.data or []
 
+    reminders_by_med_id: dict[str, list[str]] = {
+        str(m["id"]): list(m.get("reminder_times") or []) for m in meds
+    }
+
     today_log_map = {}
     for log in logs:
         try:
@@ -115,7 +150,11 @@ async def get_patient_dashboard(patient_id: str, current_user: dict = Depends(ge
         if scheduled_local.date() != today_local:
             continue
 
-        slot_key = (log.get("medicine_id"), scheduled_local.strftime("%H:%M"))
+        mid = str(log.get("medicine_id"))
+        rts = reminders_by_med_id.get(mid, [])
+        lh = scheduled_local.strftime("%H:%M")
+        slot_rt = _nearest_reminder_rt_label(lh, rts) if rts else _norm_hm_str(lh)
+        slot_key = (log.get("medicine_id"), slot_rt)
         # Keep taken logs if there is a conflict for the same slot.
         if slot_key not in today_log_map:
             today_log_map[slot_key] = log
@@ -132,8 +171,8 @@ async def get_patient_dashboard(patient_id: str, current_user: dict = Depends(ge
                 scheduled_local = datetime.combine(today_local, time(hour=hour, minute=minute), tzinfo=app_tz)
                 scheduled_utc = scheduled_local.astimezone(timezone.utc)
 
-                # Find matching log by local slot time to avoid UTC/local mismatch.
-                matching_log = today_log_map.get((med["id"], rt))
+                # Find matching log by nearest reminder slot (cron/email times may drift from HH:MM).
+                matching_log = today_log_map.get((med["id"], _norm_hm_str(rt)))
 
                 if matching_log:
                     status = matching_log.get("status") or compute_status(matching_log["scheduled_time"], matching_log.get("confirmed_at"))
@@ -316,6 +355,8 @@ async def get_reviewer_dashboard(patient_id: str, current_user: dict = Depends(g
     )
     meds = meds_result.data or []
 
+    reminders_by_med_id = {str(m["id"]): list(m.get("reminder_times") or []) for m in meds}
+
     today_log_map = {}
     for log in logs:
         try:
@@ -325,7 +366,11 @@ async def get_reviewer_dashboard(patient_id: str, current_user: dict = Depends(g
             continue
         if scheduled_local.date() != today_local:
             continue
-        slot_key = (log.get("medicine_id"), scheduled_local.strftime("%H:%M"))
+        mid = str(log.get("medicine_id"))
+        rts = reminders_by_med_id.get(mid, [])
+        lh = scheduled_local.strftime("%H:%M")
+        slot_rt = _nearest_reminder_rt_label(lh, rts) if rts else _norm_hm_str(lh)
+        slot_key = (log.get("medicine_id"), slot_rt)
         if slot_key not in today_log_map:
             today_log_map[slot_key] = log
         elif today_log_map[slot_key].get("confirmed_at") is None and log.get("confirmed_at") is not None:
@@ -339,7 +384,7 @@ async def get_reviewer_dashboard(patient_id: str, current_user: dict = Depends(g
                 hour, minute = map(int, rt.split(":"))
                 scheduled_local = datetime.combine(today_local, time(hour=hour, minute=minute), tzinfo=app_tz)
                 scheduled_utc = scheduled_local.astimezone(timezone.utc)
-                matching_log = today_log_map.get((med["id"], rt))
+                matching_log = today_log_map.get((med["id"], _norm_hm_str(rt)))
                 if matching_log:
                     status = matching_log.get("status") or compute_status(matching_log["scheduled_time"], matching_log.get("confirmed_at"))
                     conf_at = matching_log.get("confirmed_at")

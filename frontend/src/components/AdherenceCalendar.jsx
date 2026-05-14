@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { dedupeAdherenceLogsBySchedulerSlot } from "../utils/schedulerTime.js";
 
 const STATUS_COLORS = {
   taken: "bg-emerald-500/80 hover:bg-emerald-500",
@@ -56,6 +57,11 @@ function computeDayStatus(logsByDay, dateKey) {
   const dayLogs = logsByDay.get(dateKey) || [];
   if (!dayLogs.length) return "none";
   const normalized = dayLogs.map(effectiveLogStatus);
+  // Day still in progress: if a future dose is pending, don't paint the whole day red
+  // while an earlier slot was missed (evening not due yet).
+  if (normalized.some((x) => x === "pending") && normalized.some((x) => x === "missed")) {
+    return "pending";
+  }
   if (normalized.some((x) => x === "missed")) return "missed";
   if (normalized.every((x) => x === "taken")) return "taken";
   return "pending";
@@ -74,8 +80,9 @@ function formatUtcTooltip(utcDate) {
 export default function AdherenceCalendar({ logs = [] }) {
   const days = utcCalendarDays(30);
   const todayKey = utcTodayKey();
+  const normalizedLogs = dedupeAdherenceLogsBySchedulerSlot(logs);
 
-  const logsByDay = logs.reduce((map, log) => {
+  const logsByDay = normalizedLogs.reduce((map, log) => {
     const key = utcDateKeyFromIso(log.scheduled_time);
     if (!key) return map;
     const current = map.get(key) || [];

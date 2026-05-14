@@ -142,9 +142,12 @@ SCHEDULER_TIMEZONE=Asia/Kolkata
 ### Frontend `.env`
 ```
 VITE_API_URL=http://localhost:8000
+VITE_SCHEDULER_TIMEZONE=Asia/Kolkata
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 ```
+
+`VITE_SCHEDULER_TIMEZONE` must match backend `SCHEDULER_TIMEZONE` so the patient adherence calendar dedupes and fills synthetic slots using the same wall-clock rules as `GET /api/dashboard/patient` (see `docs/CORE.md` / `logs/aditya.local.md` Step 2 hardening).
 
 During development (mock server): `VITE_API_URL=http://localhost:8001`
 During development (real backend via ngrok): `VITE_API_URL=https://abc123.ngrok.io`
