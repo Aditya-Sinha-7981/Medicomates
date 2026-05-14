@@ -12,7 +12,7 @@ export default function NoteThread({ notes, currentRole, otherPartyName }) {
                 key={note.id}
                 className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
                   isMine
-                    ? "ml-auto bg-blue-600 text-white"
+                    ? "ml-auto bg-brand text-white"
                     : "bg-white border border-slate-200 text-slate-700"
                 }`}
               >

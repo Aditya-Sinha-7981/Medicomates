@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 
+import httpx
 import google.generativeai as genai
 
 from config import settings
@@ -57,23 +59,98 @@ def build_adherence_summary(logs: list) -> str:
 
 
 def _generate_insight_text_sync(summary: str) -> str:
-    prompt = f"""
+    """
+    Priority order:
+    1) Ollama (local) — avoids Gemini rate limits
+    2) Gemini — fallback if local inference fails/unavailable
+    """
+    try:
+        if settings.OLLAMA_INSIGHT_MODEL:
+            text = _generate_insight_text_ollama_sync(summary)
+            if text:
+                return text
+    except Exception:
+        logger.exception("Local (Ollama) insight generation failed; falling back to Gemini.")
+
+    return _generate_insight_text_gemini_sync(summary)
+
+
+def _normalize_insight_text(text: str) -> str:
+    """
+    Try to keep output as a short, readable paragraph.
+    (We still enforce the prompt, but models sometimes add prefixes/bullets.)
+    """
+    t = (text or "").strip()
+    if not t:
+        return ""
+
+    # Strip common prefixes and collapse whitespace for nicer UI rendering.
+    t = re.sub(r"^(\s*insight\s*[:\-])\s*", "", t, flags=re.IGNORECASE)
+    t = "\n".join([line for line in t.splitlines() if not line.strip().startswith(("-", "*"))]).strip()
+    t = re.sub(r"\s+", " ", t).strip()
+
+    # Truncate to at most 4 sentences to match the contract expectations.
+    sentences = re.split(r"(?<=[.!?])\s+", t)
+    if len(sentences) > 4:
+        t = " ".join(sentences[:4]).strip()
+    return t
+
+
+def _build_insight_prompt(summary: str) -> str:
+    return f"""
 You are a clinical assistant helping a doctor understand a patient's medication adherence.
 Based on the following 30-day adherence data, write a brief 3-4 sentence insight summary.
 Focus on: overall adherence rate, any time-of-day patterns in missed doses, and one actionable suggestion.
 Do NOT give medical advice. Do NOT suggest starting or stopping medicines.
+If you recommend an action, phrase it as a suggestion to the clinician about reminder scheduling/behavior, not a treatment change.
 Write in plain English. Be concise.
 
 Adherence data:
 {summary}
 """
 
+def _generate_insight_text_ollama_sync(summary: str) -> str:
+    prompt = _build_insight_prompt(summary)
+
+    base_url = (settings.OLLAMA_BASE_URL or "").rstrip("/")
+    model = settings.OLLAMA_INSIGHT_MODEL
+    if not base_url or not model:
+        return ""
+
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "stream": False,
+        "options": {
+            "temperature": settings.OLLAMA_TEMPERATURE,
+            "num_predict": settings.OLLAMA_NUM_PREDICT,
+        },
+    }
+
+    try:
+        with httpx.Client(timeout=settings.OLLAMA_TIMEOUT_SECONDS) as client:
+            resp = client.post(f"{base_url}/api/generate", json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+
+        text = data.get("response") or ""
+        normalized = _normalize_insight_text(text)
+        if normalized:
+            logger.info("Insight generation succeeded via Ollama (%s).", model)
+        return normalized
+    except Exception as exc:
+        logger.warning("Ollama insight generation failed: %s", exc)
+        return ""
+
+
+def _generate_insight_text_gemini_sync(summary: str) -> str:
+    prompt = _build_insight_prompt(summary)
     try:
         response = _model.generate_content(prompt)
         text = getattr(response, "text", None) or ""
-        return text.strip()
+        return _normalize_insight_text(text)
     except Exception:
-        logger.exception("Insight generation failed")
+        logger.exception("Insight generation failed (Gemini).")
         return "Insight generation temporarily unavailable."
 
 
@@ -83,7 +160,10 @@ async def generate_insight(patient_id: str) -> str:
 
     result = (
         supabase.table("adherence_logs")
-        .select("*, medicines(name, dosage, reminder_times)")
+        .select(
+            "id, medicine_id, patient_id, scheduled_time, confirmed_at, "
+            "medicines(name, dosage, reminder_times)"
+        )
         .eq("patient_id", patient_id)
         .gte("scheduled_time", thirty_days_ago_iso)
         .execute()

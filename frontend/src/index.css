@@ -1,11 +1,36 @@
 @import "tailwindcss";
 
+/*
+  Global brand palette — edit hex values here only.
+  Tailwind utilities: bg-brand, text-accent, border-brand-soft-border, etc.
+*/
 @theme {
   --font-sans: Inter, "Segoe UI", Roboto, system-ui, -apple-system, sans-serif;
+
+  /* Primary blue (existing app blue) */
+  --color-brand: #2a79e8;
+  --color-brand-hover: #1f67d2;
+  --color-brand-muted: #2f77b8;
+  --color-brand-soft: #eff6ff;
+  --color-brand-soft-border: #dbeafe;
+
+  /* Accent green (pairs with brand blue; tweak hue/saturation here) */
+  --color-accent: #0bb981;
+  --color-accent-hover: #09996d;
+  --color-accent-soft: #ecfdf5;
+  --color-accent-soft-border: #a7f3d0;
+
+  /* Neutrals / surfaces */
+  --color-surface: #f5f7fb;
+  --color-surface-muted: #e9eef7;
+}
+
+@utility shadow-brand-glow {
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--color-brand) 35%, transparent);
 }
 
 body {
-  background-color: #f5f7fb;
+  background-color: var(--color-surface);
   color: #0f172a;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
@@ -20,7 +45,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #eef2f7;
+  background: var(--color-brand-soft-border);
 }
 
 ::-webkit-scrollbar-thumb {
