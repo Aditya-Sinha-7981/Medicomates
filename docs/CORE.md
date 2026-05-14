@@ -47,6 +47,7 @@ Design these tables first. Everything else is built on top of them.
 id            uuid PRIMARY KEY references auth.users
 role          text NOT NULL  -- 'patient' | 'doctor'
 full_name     text
+email         text           -- optional mirror of auth email; see docs/sql/add_profile_email.sql
 phone         text
 date_of_birth date
 allergies     text           -- free text, e.g. "Penicillin, Sulfa drugs"
