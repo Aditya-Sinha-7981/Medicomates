@@ -492,7 +492,7 @@ export default function PatientDashboard() {
 
             <div className="flex flex-col gap-5 lg:col-span-4">
               <section className="rounded-3xl border border-slate-100 bg-white/80 p-4 md:p-5 shadow-[0_18px_50px_rgba(15,23,42,0.06)]">
-                <AdherenceCalendar logs={adherenceLogs} />
+                <AdherenceCalendar logs={adherenceLogs} medicines={medicines} />
               </section>
 
               <section className="rounded-3xl border border-slate-100 bg-white/80 p-4 md:p-5 shadow-[0_18px_50px_rgba(15,23,42,0.06)]">

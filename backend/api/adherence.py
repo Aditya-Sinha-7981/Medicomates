@@ -19,6 +19,37 @@ _ADHERENCE_LOG_LIST_COLUMNS = (
 )
 
 
+def _hm_to_minutes(hm: str) -> int:
+    h, m = map(int, hm.strip().split(":"))
+    return h * 60 + m
+
+
+def _norm_hm(hm: str) -> str:
+    h, m = map(int, hm.strip().split(":"))
+    return f"{h:02d}:{m:02d}"
+
+
+def _circ_minutes(a: int, b: int) -> int:
+    d = abs(a - b)
+    return min(d, 1440 - d)
+
+
+def _nearest_reminder_rt(local_hm: str, reminder_times: list[str]) -> str:
+    """Which reminder_times slot (normalized HH:MM) is closest on a 24h circle."""
+    cur = _hm_to_minutes(local_hm)
+    rts = [_norm_hm(x) for x in reminder_times if x]
+    if not rts:
+        return _norm_hm(local_hm)
+    best = rts[0]
+    best_d = _circ_minutes(cur, _hm_to_minutes(best))
+    for rt in rts[1:]:
+        d = _circ_minutes(cur, _hm_to_minutes(rt))
+        if d < best_d:
+            best_d = d
+            best = rt
+    return best
+
+
 @router.get("/confirm")
 async def confirm_taken(token: str):
     log = validate_token(token)
@@ -79,6 +110,41 @@ async def mark_dose(
         if scheduled_local.strftime("%H:%M") == data.time:
             target = row
             break
+
+    # Fuzzy match: same calendar day + same logical reminder slot (handles duplicate rows
+    # where scheduled_time is "now" vs slot-aligned UTC, e.g. 02:30Z vs 08:00Z for 08:00 IST).
+    if not target:
+        med_res = (
+            supabase.table("medicines")
+            .select("reminder_times")
+            .eq("id", data.medicine_id)
+            .eq("patient_id", data.patient_id)
+            .limit(1)
+            .execute()
+        )
+        mrows = med_res.data or []
+        reminder_times = mrows[0].get("reminder_times") or [] if mrows else []
+        if reminder_times:
+            slot = _norm_hm(data.time)
+            best_row = None
+            best_d = 10**9
+            target_m = _hm_to_minutes(slot)
+            for row in logs:
+                try:
+                    scheduled_utc = datetime.fromisoformat(
+                        row["scheduled_time"].replace("Z", "+00:00")
+                    )
+                    lh = scheduled_utc.astimezone(app_tz).strftime("%H:%M")
+                except Exception:
+                    continue
+                nearest = _nearest_reminder_rt(lh, reminder_times)
+                if nearest != slot:
+                    continue
+                d = _circ_minutes(_hm_to_minutes(lh), target_m)
+                if d < best_d:
+                    best_d = d
+                    best_row = row
+            target = best_row
 
     if not target:
         # No row exists for this slot yet; create one so state is persisted in DB.

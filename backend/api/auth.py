@@ -27,13 +27,19 @@ async def register(data: RegisterSchema):
     if not user:
         raise HTTPException(status_code=400, detail="Registration failed: missing user")
 
-    supabase.table("profiles").upsert(
-        {
-            "id": user.id,
-            "role": data.role,
-            "full_name": data.full_name,
-        }
-    ).execute()
+    payload = {
+        "id": user.id,
+        "role": data.role,
+        "full_name": data.full_name,
+        "email": data.email.strip().lower(),
+    }
+    try:
+        supabase.table("profiles").upsert(payload).execute()
+    except Exception:
+        # profiles.email column may not exist until docs/sql/add_profile_email.sql is applied.
+        supabase.table("profiles").upsert(
+            {k: v for k, v in payload.items() if k != "email"}
+        ).execute()
 
     return {"message": "registered", "id": user.id, "role": data.role}
 
@@ -60,6 +66,14 @@ async def login(data: LoginSchema):
         .execute()
     )
     profile_data = profile.data or {}
+
+    # Keep profiles.email in sync for reminder delivery fallback (see scheduler_service).
+    try:
+        supabase.table("profiles").update({"email": data.email.strip().lower()}).eq(
+            "id", user.id
+        ).execute()
+    except Exception:
+        pass
 
     return {
         "access_token": session.access_token,

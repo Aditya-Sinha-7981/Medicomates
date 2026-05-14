@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { getCurrentUser } from "../utils/auth";
 import { api, endpoints } from "../services/api.js";
+import {
+  dedupeAdherenceLogsForPatient,
+  schedulerDateKeyFromIso,
+  schedulerHmFromIso,
+  snapHmToClosestReminderSlot,
+  todayYmdInSchedulerTz,
+} from "../utils/schedulerTime.js";
 
 const OVERLAY_KEY = "medicomates_dose_overlay";
 const UNTAKEN_KEY = "medicomates_dose_untaken_overlay";
@@ -16,6 +23,7 @@ const safeParse = (value, fallback) => {
   }
 };
 
+/** Browser-local calendar date (YYYY-MM-DD) — legacy dose overlay keys; prefer scheduler dates for new writes. */
 const getDateKey = (date) => {
   const yyyy = date.getFullYear();
   const mm = String(date.getMonth() + 1).padStart(2, "0");
@@ -23,22 +31,14 @@ const getDateKey = (date) => {
   return `${yyyy}-${mm}-${dd}`;
 };
 
-/** HH:mm in UTC — matches naive `reminder_times` / status `time` strings when API uses Z timestamps */
-const utcTimeFromIso = (iso) => {
-  const d = new Date(iso);
-  const hh = String(d.getUTCHours()).padStart(2, "0");
-  const mm = String(d.getUTCMinutes()).padStart(2, "0");
-  return `${hh}:${mm}`;
-};
-
-const utcDateKeyFromIso = (iso) => {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  const yyyy = d.getUTCFullYear();
-  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(d.getUTCDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-};
+/** True if overlay row `o.date` refers to the same calendar day as `logSchedulerDate` (scheduler TZ). */
+function overlayDateMatchesLogSchedulerDay(oDate, logSchedulerDate) {
+  if (oDate === logSchedulerDate) return true;
+  const todaySched = todayYmdInSchedulerTz();
+  const todayBrowser = getDateKey(new Date());
+  if (logSchedulerDate !== todaySched) return false;
+  return oDate === todayBrowser;
+}
 
 const readOverlay = () => safeParse(localStorage.getItem(OVERLAY_KEY), []);
 const writeOverlay = (entries) =>
@@ -117,7 +117,7 @@ function applyDashboardOverlay(dashboard, patientId) {
       .filter((c) => c.patient_id === patientId)
       .map((c) => c.medicine_id)
   );
-  const todayKey = getDateKey(new Date());
+  const todayKey = todayYmdInSchedulerTz();
 
   const todays_medicines = (dashboard.todays_medicines || [])
     .filter((m) => !cancelledIds.has(m.medicine_id))
@@ -127,7 +127,7 @@ function applyDashboardOverlay(dashboard, patientId) {
         const untaken = untakenOverlay.find(
           (o) =>
             o.medicine_id === m.medicine_id &&
-            o.date === todayKey &&
+            overlayDateMatchesLogSchedulerDay(o.date, todayKey) &&
             o.time === s.time
         );
         if (untaken) {
@@ -140,7 +140,7 @@ function applyDashboardOverlay(dashboard, patientId) {
         const ov = overlay.find(
           (o) =>
             o.medicine_id === m.medicine_id &&
-            o.date === todayKey &&
+            overlayDateMatchesLogSchedulerDay(o.date, todayKey) &&
             o.time === s.time
         );
         if (ov) {
@@ -159,15 +159,22 @@ function applyDashboardOverlay(dashboard, patientId) {
 
 function mergeTodaysScheduleFromMedicines(dashboard, medicines, patientId) {
   const baseDashboard = dashboard || {};
-  const todayKey = getDateKey(new Date());
+  const todayKey = todayYmdInSchedulerTz();
   const cancelledIds = new Set(
     readCancelled()
       .filter((c) => c.patient_id === patientId)
       .map((c) => c.medicine_id)
   );
-  const overlay = readOverlay().filter((o) => o.patient_id === patientId && o.date === todayKey);
+  const todayBrowser = getDateKey(new Date());
+  const overlay = readOverlay().filter(
+    (o) =>
+      o.patient_id === patientId &&
+      (o.date === todayKey || o.date === todayBrowser)
+  );
   const untakenOverlay = readUntakenOverlay().filter(
-    (o) => o.patient_id === patientId && o.date === todayKey
+    (o) =>
+      o.patient_id === patientId &&
+      (o.date === todayKey || o.date === todayBrowser)
   );
 
   const existing = Array.isArray(baseDashboard.todays_medicines)
@@ -213,20 +220,34 @@ function mergeTodaysScheduleFromMedicines(dashboard, medicines, patientId) {
   };
 }
 
+function reminderTimesForMedicine(medicines, medicineId) {
+  const m = (medicines || []).find(
+    (x) => String(x.id ?? x.medicine_id) === String(medicineId)
+  );
+  return Array.isArray(m?.reminder_times) ? m.reminder_times : [];
+}
+
 /**
  * @param {Array<Record<string, unknown>>} logs
  * @param {string} patientId
+ * @param {Array<Record<string, unknown>>} medicines
  */
-function applyAdherenceOverlay(logs, patientId) {
+function applyAdherenceOverlay(logs, patientId, medicines) {
   const overlay = readOverlay().filter((o) => o.patient_id === patientId);
   const untakenOverlay = readUntakenOverlay().filter((o) => o.patient_id === patientId);
   return logs.map((log) => {
-    const dateKey = getDateKey(new Date(log.scheduled_time));
-    const timeStr = utcTimeFromIso(log.scheduled_time);
+    const dateKey = schedulerDateKeyFromIso(log.scheduled_time);
+    const rawHm = schedulerHmFromIso(log.scheduled_time);
+    if (!dateKey || !rawHm) return log;
+    const rts = reminderTimesForMedicine(medicines, log.medicine_id);
+    const timeStr =
+      rts.length > 0
+        ? snapHmToClosestReminderSlot(rawHm, rts, log.scheduled_time)
+        : rawHm;
     const untaken = untakenOverlay.find(
       (o) =>
         o.medicine_id === log.medicine_id &&
-        o.date === dateKey &&
+        overlayDateMatchesLogSchedulerDay(o.date, dateKey) &&
         o.time === timeStr
     );
     if (untaken) {
@@ -239,7 +260,7 @@ function applyAdherenceOverlay(logs, patientId) {
     const ov = overlay.find(
       (o) =>
         o.medicine_id === log.medicine_id &&
-        o.date === dateKey &&
+        overlayDateMatchesLogSchedulerDay(o.date, dateKey) &&
         o.time === timeStr
     );
     if (ov) {
@@ -251,44 +272,6 @@ function applyAdherenceOverlay(logs, patientId) {
     }
     return log;
   });
-}
-
-function buildSyntheticTodayLogs(dashboard, patientId, existingLogs) {
-  const todays = dashboard?.todays_medicines || [];
-  if (!todays.length) return [];
-
-  const todayLocal = new Date();
-  const todayUtcKey = utcDateKeyFromIso(todayLocal.toISOString());
-  const existingTodayByMedicine = new Set(
-    (Array.isArray(existingLogs) ? existingLogs : [])
-      .filter((log) => utcDateKeyFromIso(log?.scheduled_time) === todayUtcKey)
-      .map((log) => log?.medicine_id)
-      .filter(Boolean)
-  );
-
-  const synthetic = [];
-  for (const med of todays) {
-    const medId = med?.medicine_id;
-    if (!medId) continue;
-    // If we already have real logs for this medicine today, don't invent duplicates.
-    if (existingTodayByMedicine.has(medId)) continue;
-    for (const s of med?.statuses || []) {
-      const timeStr = String(s?.time || "");
-      const [hh, mm] = timeStr.split(":").map((v) => Number(v));
-      if (!Number.isFinite(hh) || !Number.isFinite(mm)) continue;
-      const scheduledLocal = new Date(todayLocal);
-      scheduledLocal.setHours(hh, mm, 0, 0);
-      synthetic.push({
-        id: `synthetic-${medId}-${timeStr}`,
-        medicine_id: medId,
-        medicine_name: med?.name,
-        scheduled_time: scheduledLocal.toISOString(),
-        confirmed_at: s?.confirmed_at ?? null,
-        status: s?.status || "pending",
-      });
-    }
-  }
-  return synthetic;
 }
 
 export default function usePatientData() {
@@ -359,8 +342,10 @@ export default function usePatientData() {
         patientId
       );
       const baseLogs = Array.isArray(adherenceLogsRaw) ? adherenceLogsRaw : [];
-      const syntheticToday = buildSyntheticTodayLogs(dashboard, patientId, baseLogs);
-      const adherenceLogs = applyAdherenceOverlay([...baseLogs, ...syntheticToday], patientId);
+      const adherenceLogs = dedupeAdherenceLogsForPatient(
+        applyAdherenceOverlay(baseLogs, patientId, medicines),
+        medicines
+      );
 
       setData({
         dashboard,
@@ -394,7 +379,7 @@ export default function usePatientData() {
       if (!user) return;
 
       const overlay = readOverlay();
-      const dateKey = getDateKey(new Date());
+      const dateKey = todayYmdInSchedulerTz();
       const nextEntry = {
         patient_id: user.id,
         medicine_id: medicineId,
@@ -472,7 +457,7 @@ export default function usePatientData() {
       const user = getCurrentUser();
       if (!user) return;
 
-      const dateKey = getDateKey(new Date());
+      const dateKey = todayYmdInSchedulerTz();
       const filtered = readOverlay().filter(
         (o) =>
           !(
