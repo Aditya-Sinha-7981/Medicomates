@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timezone
 
 from apscheduler.triggers.cron import CronTrigger
+from postgrest.exceptions import APIError
 
 from scheduler import scheduler
 from services.email_service import send_reminder_email
@@ -86,12 +87,60 @@ def send_reminder_for_medicine(medicine_id: str) -> None:
 
     patient_id = medicine["patient_id"]
 
+    email: str | None = None
     try:
         user_response = supabase.auth.admin.get_user_by_id(patient_id)
-        email = user_response.user.email
-    except Exception:
-        logger.exception(
-            "Reminder skipped — could not fetch email patient_id=%s", patient_id
+        email = getattr(getattr(user_response, "user", None), "email", None) or None
+    except Exception as exc:
+        logger.warning(
+            "Auth admin get_user_by_id failed for patient_id=%s (%s). Trying profiles.email fallback. "
+            "If you use the new Supabase 'sb_secret_…' API key, switch to Legacy service_role JWT (eyJ…) "
+            "or upgrade supabase-py — see backend/requirements.txt comment.",
+            patient_id,
+            exc,
+        )
+
+    if not email:
+        try:
+            prof = (
+                supabase.table("profiles")
+                .select("email")
+                .eq("id", patient_id)
+                .limit(1)
+                .execute()
+            )
+            rows = prof.data or []
+            raw = rows[0].get("email") if rows else None
+            if isinstance(raw, str) and raw.strip():
+                email = raw.strip()
+        except APIError as exc:
+            if exc.code == "42703" or (
+                exc.message and "email" in exc.message and "does not exist" in exc.message
+            ):
+                logger.error(
+                    "Reminder skipped — column public.profiles.email is missing. "
+                    "Run docs/sql/add_profile_email.sql in the Supabase SQL editor, then "
+                    "re-login once (or set email on that profile). patient_id=%s",
+                    patient_id,
+                )
+            else:
+                logger.exception(
+                    "Reminder skipped — profiles.email lookup failed patient_id=%s",
+                    patient_id,
+                )
+            return
+        except Exception:
+            logger.exception(
+                "Reminder skipped — profiles.email lookup failed patient_id=%s",
+                patient_id,
+            )
+            return
+
+    if not email:
+        logger.error(
+            "Reminder skipped — no email. Fix SUPABASE_SERVICE_KEY (service_role), "
+            "and/or add profiles.email (see docs/sql/add_profile_email.sql) and re-login. patient_id=%s",
+            patient_id,
         )
         return
 
