@@ -199,10 +199,19 @@ export function dedupeAdherenceLogsForPatient(
       continue;
     }
     if (seen.has(key)) continue;
+    const winner = bestByKey.get(key);
+    if (!winner) continue;
     seen.add(key);
-    out.push(bestByKey.get(key));
+    out.push(winner);
   }
-  return out;
+  const seenIds = new Set();
+  return out.filter((log) => {
+    const id = log?.id;
+    if (id == null || id === "") return true;
+    if (seenIds.has(String(id))) return false;
+    seenIds.add(String(id));
+    return true;
+  });
 }
 
 export function todayYmdInSchedulerTz(now = new Date(), ianaTimeZone = SCHEDULER_IANA) {

@@ -1,10 +1,12 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { dedupeAdherenceLogsBySchedulerSlot } from "../utils/schedulerTime.js";
+import { dedupeAdherenceLogsForPatient } from "../utils/schedulerTime.js";
 
 const STATUS_COLORS = {
   taken: "bg-emerald-500/80 hover:bg-emerald-500",
   missed: "bg-rose-500/80 hover:bg-rose-500",
-  pending: "bg-slate-300/80 hover:bg-slate-300",
+  /** No misses yet, but not all taken (e.g. some pending or partial progress). */
+  open: "bg-white hover:bg-slate-50 ring-1 ring-inset ring-slate-300/90 shadow-sm",
   none: "bg-slate-400/90 hover:bg-slate-400",
 };
 
@@ -53,18 +55,23 @@ function effectiveLogStatus(log) {
   return t < Date.now() ? "missed" : "pending";
 }
 
+/** All counts come from the same `dayLogs` slice — no independent missed/taken totals. */
+function summarizeDayLogs(dayLogs) {
+  const statuses = dayLogs.map(effectiveLogStatus);
+  const taken = statuses.filter((x) => x === "taken").length;
+  const missed = statuses.filter((x) => x === "missed").length;
+  const pending = statuses.filter((x) => x === "pending").length;
+  const total = dayLogs.length;
+  return { taken, missed, pending, total };
+}
+
 function computeDayStatus(logsByDay, dateKey) {
   const dayLogs = logsByDay.get(dateKey) || [];
   if (!dayLogs.length) return "none";
-  const normalized = dayLogs.map(effectiveLogStatus);
-  // Day still in progress: if a future dose is pending, don't paint the whole day red
-  // while an earlier slot was missed (evening not due yet).
-  if (normalized.some((x) => x === "pending") && normalized.some((x) => x === "missed")) {
-    return "pending";
-  }
-  if (normalized.some((x) => x === "missed")) return "missed";
-  if (normalized.every((x) => x === "taken")) return "taken";
-  return "pending";
+  const { taken, missed, total } = summarizeDayLogs(dayLogs);
+  if (missed > 0) return "missed";
+  if (total > 0 && taken === total) return "taken";
+  return "open";
 }
 
 function formatUtcTooltip(utcDate) {
@@ -77,19 +84,30 @@ function formatUtcTooltip(utcDate) {
   });
 }
 
-export default function AdherenceCalendar({ logs = [] }) {
+function formatScheduledDoseLine(total) {
+  if (total === 0) return "No doses";
+  return total === 1 ? "1 dose scheduled" : `${total} doses scheduled`;
+}
+
+export default function AdherenceCalendar({ logs = [], medicines = [] }) {
   const days = utcCalendarDays(30);
   const todayKey = utcTodayKey();
-  const normalizedLogs = dedupeAdherenceLogsBySchedulerSlot(logs);
 
-  const logsByDay = normalizedLogs.reduce((map, log) => {
-    const key = utcDateKeyFromIso(log.scheduled_time);
-    if (!key) return map;
-    const current = map.get(key) || [];
-    current.push(log);
-    map.set(key, current);
-    return map;
-  }, new Map());
+  const normalizedLogs = useMemo(
+    () => dedupeAdherenceLogsForPatient(logs, medicines),
+    [logs, medicines]
+  );
+
+  const logsByDay = useMemo(() => {
+    return normalizedLogs.reduce((map, log) => {
+      const key = utcDateKeyFromIso(log.scheduled_time);
+      if (!key) return map;
+      const current = map.get(key) || [];
+      current.push(log);
+      map.set(key, current);
+      return map;
+    }, new Map());
+  }, [normalizedLogs]);
 
   return (
     <div className="rounded-3xl border border-slate-100 bg-white/80 shadow-[0_18px_45px_rgba(15,23,42,0.06)] p-5 md:p-6">
@@ -104,14 +122,15 @@ export default function AdherenceCalendar({ logs = [] }) {
 
       <div className="mt-3 grid grid-cols-10 gap-1.5 md:gap-2">
         {days.map(({ key, date }) => {
+          const dayLogs = logsByDay.get(key) || [];
           const status = computeDayStatus(logsByDay, key);
-          const count = (logsByDay.get(key) || []).length;
+          const { total: doseTotal } = summarizeDayLogs(dayLogs);
           const isToday = key === todayKey;
 
           return (
             <motion.div
               key={key}
-              className={`relative h-5 md:h-6 w-full rounded-xl border border-slate-200/70 ${STATUS_COLORS[status]}`}
+              className={`relative h-5 md:h-6 w-full rounded-xl ${status === "open" ? "" : "border border-slate-200/70"} ${STATUS_COLORS[status]}`}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.15, delay: 0.01 }}
@@ -122,12 +141,7 @@ export default function AdherenceCalendar({ logs = [] }) {
                   <div className="font-medium">
                     {formatUtcTooltip(date)} {isToday ? "(today UTC)" : ""}
                   </div>
-                  <div className="mt-0.5 capitalize text-slate-300">
-                    Status: {status === "none" ? "no doses" : status}
-                  </div>
-                  <div className="text-slate-400">
-                    {count ? `${count} scheduled dose${count > 1 ? "s" : ""}` : "No doses"}
-                  </div>
+                  <div className="mt-1 text-slate-300">{formatScheduledDoseLine(doseTotal)}</div>
                 </div>
               </div>
             </motion.div>
@@ -137,16 +151,17 @@ export default function AdherenceCalendar({ logs = [] }) {
 
       <div className="mt-4 flex flex-wrap items-center gap-4 text-[11px] md:text-xs text-slate-500">
         <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-5 rounded-full bg-emerald-500" /> Taken
+          <span className="h-2.5 w-5 shrink-0 rounded-full bg-emerald-500" /> All taken
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-5 rounded-full bg-rose-500" /> Missed
+          <span className="h-2.5 w-5 shrink-0 rounded-full bg-rose-500" /> Any missed
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-5 rounded-full bg-slate-300" /> Pending / future
+          <span className="h-2.5 w-5 shrink-0 rounded-full border border-slate-300 bg-white shadow-sm ring-1 ring-slate-200/80" />
+          In progress (no misses yet)
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-5 rounded-full bg-slate-400" /> No doses
+          <span className="h-2.5 w-5 shrink-0 rounded-full bg-slate-400" /> No doses
         </div>
       </div>
     </div>
