@@ -729,7 +729,7 @@ cloudinary==1.41.0          # medical document storage
 
 ---
 
-## 🪟 Cross-Platform Rules (Mac + Windows)
+## 🪟 Cross-Platform Rules (Mac + Windows)..
 
 | Rule | Why |
 |---|---|
