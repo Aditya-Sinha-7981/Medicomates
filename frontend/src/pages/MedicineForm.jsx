@@ -22,6 +22,7 @@ const defaultForm = {
   quantity_on_hand: "",
   units_per_day: "",
   low_supply_threshold_days: "7",
+  is_critical: false,
 };
 
 const normalizeOcrField = (value) => {
@@ -69,6 +70,7 @@ function buildInitialForm(editMedicine, user, patientIdFromState) {
         editMedicine.low_supply_threshold_days != null
           ? String(editMedicine.low_supply_threshold_days)
           : "7",
+      is_critical: Boolean(editMedicine.is_critical),
     };
   }
   return { ...defaultForm, patient_id: patientIdFromState || user?.id || "" };
@@ -96,7 +98,11 @@ export default function MedicineForm() {
   );
 
   const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
 
   const handleTimeChange = (index, value) => {
@@ -207,6 +213,7 @@ export default function MedicineForm() {
       quantity_on_hand: q,
       units_per_day: upd,
       low_supply_threshold_days: q != null && upd != null ? thr ?? 7 : null,
+      is_critical: Boolean(formData.is_critical),
     };
   };
 
@@ -498,6 +505,24 @@ export default function MedicineForm() {
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50/60 px-3.5 py-3 text-sm md:text-base text-slate-900 outline-none ring-0 transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand-soft-border"
                 />
               </div>
+            </section>
+
+            <section className="rounded-2xl border border-rose-100 bg-rose-50/40 p-4 md:p-5">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  name="is_critical"
+                  checked={Boolean(formData.is_critical)}
+                  onChange={handleChange}
+                  className="mt-1 h-4 w-4 rounded border-rose-300 text-rose-600 focus:ring-rose-500"
+                />
+                <span>
+                  <span className="text-sm font-semibold text-slate-900">Critical Medication</span>
+                  <span className="mt-1 block text-xs text-slate-600">
+                    Mark medicines that need escalated follow-up if a dose is missed (e.g. voice call).
+                  </span>
+                </span>
+              </label>
             </section>
 
             <section className="rounded-2xl border border-amber-100 bg-amber-50/40 p-4 md:p-5">

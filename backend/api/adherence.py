@@ -1,4 +1,6 @@
+import logging
 from datetime import datetime, timedelta, timezone
+from urllib.parse import unquote_plus
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,6 +12,8 @@ from utils.adherence_stats import calculate_percentage, compute_status
 from utils.auth import get_current_user
 from utils.supabase_client import supabase
 from utils.token import generate_token, validate_token
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/adherence", tags=["adherence"])
 
@@ -50,18 +54,57 @@ def _nearest_reminder_rt(local_hm: str, reminder_times: list[str]) -> str:
     return best
 
 
+def _normalize_confirm_token(raw: str | None) -> str:
+    """Undo query-string encoding / mail-client mangling before DB lookup."""
+    if raw is None:
+        return ""
+    s = str(raw).strip()
+    if not s:
+        return ""
+    return unquote_plus(s)
+
+
 @router.get("/confirm")
 async def confirm_taken(token: str):
-    log = validate_token(token)
+    clean = _normalize_confirm_token(token)
+    log = validate_token(clean) if clean else None
+    if not log and token and clean != token:
+        log = validate_token(token.strip())
     if not log:
         return RedirectResponse(url=f"{settings.FRONTEND_URL}/confirm?status=invalid")
 
-    supabase.table("adherence_logs").update(
-        {
-            "confirmed_at": datetime.now(timezone.utc).isoformat(),
-            "token_used": True,
-        }
-    ).eq("id", log["id"]).execute()
+    row_id = str(log["id"])
+    now_iso = datetime.now(timezone.utc).isoformat()
+    try:
+        # supabase-py 2.7: do not chain .select() after .update().eq() — not supported (AttributeError).
+        supabase.table("adherence_logs").update(
+            {"confirmed_at": now_iso, "token_used": True}
+        ).eq("id", row_id).eq("token_used", False).execute()
+    except Exception:
+        logger.exception("adherence confirm: update failed id=%s", row_id)
+        return RedirectResponse(url=f"{settings.FRONTEND_URL}/confirm?status=invalid")
+
+    ok = False
+    try:
+        chk = (
+            supabase.table("adherence_logs")
+            .select("confirmed_at, token_used")
+            .eq("id", row_id)
+            .limit(1)
+            .execute()
+        )
+        row = (chk.data or [None])[0] or {}
+        ok = bool(row.get("confirmed_at") and row.get("token_used"))
+    except Exception:
+        logger.exception("adherence confirm: verify read failed id=%s", row_id)
+
+    if not ok:
+        logger.error(
+            "adherence confirm: row not marked taken id=%s token_prefix=%s",
+            row_id,
+            (clean[:8] + "…") if len(clean) > 8 else clean,
+        )
+        return RedirectResponse(url=f"{settings.FRONTEND_URL}/confirm?status=invalid")
 
     return RedirectResponse(url=f"{settings.FRONTEND_URL}/confirm?status=success")
 

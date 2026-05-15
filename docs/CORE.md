@@ -71,7 +71,18 @@ is_active       boolean DEFAULT true
 quantity_on_hand integer            -- optional: units left (pills, etc.)
 units_per_day    double precision   -- optional: average units consumed per calendar day
 low_supply_threshold_days integer   -- optional: warn when estimated days of supply <= this (default 7 in app logic when tracking)
+is_critical     boolean DEFAULT false  -- escalated reminders (e.g. voice call) when missed
 created_at      timestamptz DEFAULT now()
+```
+
+### `call_logs`
+```sql
+id            uuid PRIMARY KEY DEFAULT gen_random_uuid()
+patient_id    uuid NOT NULL references profiles(id)
+medicine_id   uuid NOT NULL references medicines(id)
+called_at     timestamptz NOT NULL DEFAULT now()
+status        text NOT NULL  -- 'success' | 'no_answer' | 'failed'
+message_text  text NOT NULL
 ```
 
 ### `adherence_logs`

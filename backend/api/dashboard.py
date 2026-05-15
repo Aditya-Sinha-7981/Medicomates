@@ -18,7 +18,7 @@ _DASHBOARD_LOG_COLUMNS = "id, medicine_id, patient_id, scheduled_time, confirmed
 _DOCTOR_LIST_LOG_COLUMNS = ADHERENCE_WINDOW_COLUMNS
 _DASHBOARD_MEDICINE_COLUMNS = (
     "id, name, dosage, reminder_times, quantity_on_hand, units_per_day, "
-    "low_supply_threshold_days, patient_id"
+    "low_supply_threshold_days, patient_id, is_critical"
 )
 _REVIEWER_30D_LOG_COLUMNS = (
     "id, medicine_id, patient_id, scheduled_time, confirmed_at, medicines(name)"
@@ -154,7 +154,8 @@ async def get_patient_dashboard(patient_id: str, current_user: dict = Depends(ge
         rts = reminders_by_med_id.get(mid, [])
         lh = scheduled_local.strftime("%H:%M")
         slot_rt = _nearest_reminder_rt_label(lh, rts) if rts else _norm_hm_str(lh)
-        slot_key = (log.get("medicine_id"), slot_rt)
+        # Keys must use str(medicine_id): lookup uses str(med["id"]); mixed UUID/str breaks matches after email confirm.
+        slot_key = (mid, slot_rt)
         # Keep taken logs if there is a conflict for the same slot.
         if slot_key not in today_log_map:
             today_log_map[slot_key] = log
@@ -172,7 +173,7 @@ async def get_patient_dashboard(patient_id: str, current_user: dict = Depends(ge
                 scheduled_utc = scheduled_local.astimezone(timezone.utc)
 
                 # Find matching log by nearest reminder slot (cron/email times may drift from HH:MM).
-                matching_log = today_log_map.get((med["id"], _norm_hm_str(rt)))
+                matching_log = today_log_map.get((str(med["id"]), _norm_hm_str(rt)))
 
                 if matching_log:
                     status = matching_log.get("status") or compute_status(matching_log["scheduled_time"], matching_log.get("confirmed_at"))
@@ -200,6 +201,7 @@ async def get_patient_dashboard(patient_id: str, current_user: dict = Depends(ge
                 "dosage": med["dosage"],
                 "reminder_times": med.get("reminder_times", []),
                 "statuses": sorted(statuses, key=lambda x: x["time"]),
+                "is_critical": bool(med.get("is_critical")),
                 **_supply_meta(med),
             }
         )
@@ -370,7 +372,8 @@ async def get_reviewer_dashboard(patient_id: str, current_user: dict = Depends(g
         rts = reminders_by_med_id.get(mid, [])
         lh = scheduled_local.strftime("%H:%M")
         slot_rt = _nearest_reminder_rt_label(lh, rts) if rts else _norm_hm_str(lh)
-        slot_key = (log.get("medicine_id"), slot_rt)
+        # Keys must use str(medicine_id): lookup uses str(med["id"]); mixed UUID/str breaks matches after email confirm.
+        slot_key = (mid, slot_rt)
         if slot_key not in today_log_map:
             today_log_map[slot_key] = log
         elif today_log_map[slot_key].get("confirmed_at") is None and log.get("confirmed_at") is not None:
@@ -384,7 +387,7 @@ async def get_reviewer_dashboard(patient_id: str, current_user: dict = Depends(g
                 hour, minute = map(int, rt.split(":"))
                 scheduled_local = datetime.combine(today_local, time(hour=hour, minute=minute), tzinfo=app_tz)
                 scheduled_utc = scheduled_local.astimezone(timezone.utc)
-                matching_log = today_log_map.get((med["id"], _norm_hm_str(rt)))
+                matching_log = today_log_map.get((str(med["id"]), _norm_hm_str(rt)))
                 if matching_log:
                     status = matching_log.get("status") or compute_status(matching_log["scheduled_time"], matching_log.get("confirmed_at"))
                     conf_at = matching_log.get("confirmed_at")
@@ -401,6 +404,7 @@ async def get_reviewer_dashboard(patient_id: str, current_user: dict = Depends(g
                 "dosage": med["dosage"],
                 "reminder_times": med.get("reminder_times", []),
                 "statuses": sorted(statuses, key=lambda x: x["time"]),
+                "is_critical": bool(med.get("is_critical")),
                 **_supply_meta(med),
             }
         )

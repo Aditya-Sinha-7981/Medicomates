@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import quote
 
 import resend
 
@@ -10,7 +11,8 @@ resend.api_key = settings.RESEND_API_KEY
 
 
 def build_reminder_email(medicine_name: str, dosage: str, token: str) -> str:
-    confirm_url = f"{settings.BACKEND_URL}/api/adherence/confirm?token={token}"
+    # Must encode token: urlsafe tokens can include +, &, etc.; mail clients rewrite bare query values.
+    confirm_url = f"{settings.BACKEND_URL}/api/adherence/confirm?token={quote(str(token), safe='')}"
     return f"""
     <!DOCTYPE html>
     <html>

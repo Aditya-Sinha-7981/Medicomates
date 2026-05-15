@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     OLLAMA_TEMPERATURE: float = 0.2
     OLLAMA_NUM_PREDICT: int = 180
 
+    # Task 2 — Twilio critical-medication voice calls (optional until Task 2 code ships)
+    CALL_PROVIDER: str = "none"  # "none" | "twilio"
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_PHONE_NUMBER: str = ""
+
     @field_validator(
         "SUPABASE_URL",
         "SUPABASE_SERVICE_KEY",
@@ -41,6 +47,10 @@ class Settings(BaseSettings):
         "FROM_EMAIL",
         "FRONTEND_URL",
         "BACKEND_URL",
+        "TWILIO_ACCOUNT_SID",
+        "TWILIO_AUTH_TOKEN",
+        "TWILIO_PHONE_NUMBER",
+        "CALL_PROVIDER",
         mode="before",
     )
     @classmethod
