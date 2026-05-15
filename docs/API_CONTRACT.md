@@ -279,6 +279,41 @@ Response 200: { "message": "Document deleted." }
 
 ---
 
+## Reminders (critical voice calls)
+
+### Trigger critical medication call (demo / doctor only)
+```
+POST /api/reminders/critical-call/{patient_id}/{medicine_id}
+[Protected — doctor JWT only, same as test reminder endpoint]
+
+Behaviour:
+  - Medicine must belong to patient_id and have is_critical=true
+  - Calls profiles.phone (E.164, no spaces)
+  - Bilingual Twilio voice: Polly.Aditi hi-IN, then en-IN
+  - Inserts a row into call_logs
+
+Requires backend env:
+  CALL_PROVIDER=twilio
+  TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER
+
+Response 200:
+{
+  "status": "success" | "no_answer" | "failed" | "skipped",
+  "message": "string",
+  "message_text": "string | null",
+  "call_sid": "string | null",
+  "patient_id": "uuid",
+  "medicine_id": "uuid"
+}
+
+Response 403:
+{ "detail": "Only doctors can trigger critical medication calls" }
+```
+
+Automatic calls: 30 minutes after a reminder email for a critical medicine, if the dose is still unconfirmed (scheduler).
+
+---
+
 ## Adherence Endpoints
 
 ### Confirm taken — email click [PUBLIC]

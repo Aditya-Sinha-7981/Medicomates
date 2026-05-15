@@ -5,6 +5,7 @@ from apscheduler.triggers.cron import CronTrigger
 from postgrest.exceptions import APIError
 
 from scheduler import scheduler
+from services.critical_call_service import schedule_critical_miss_check
 from services.email_service import send_reminder_email
 from utils.supabase_client import supabase
 from utils.token import generate_token
@@ -72,7 +73,7 @@ def reschedule_medicine(medicine_id: str, new_times: list) -> None:
 def send_reminder_for_medicine(medicine_id: str) -> None:
     med_result = (
         supabase.table("medicines")
-        .select("id, patient_id, name, dosage, is_active")
+        .select("id, patient_id, name, dosage, is_active, is_critical")
         .eq("id", medicine_id)
         .execute()
     )
@@ -146,8 +147,9 @@ def send_reminder_for_medicine(medicine_id: str) -> None:
 
     token = generate_token()
 
+    adherence_log_id: str | None = None
     try:
-        supabase.table("adherence_logs").insert(
+        inserted = supabase.table("adherence_logs").insert(
             {
                 "medicine_id": medicine_id,
                 "patient_id": patient_id,
@@ -157,11 +159,17 @@ def send_reminder_for_medicine(medicine_id: str) -> None:
                 "confirmed_at": None,
             }
         ).execute()
+        rows = inserted.data or []
+        if rows:
+            adherence_log_id = rows[0].get("id")
     except Exception:
         logger.exception(
             "Reminder failed — adherence_logs insert medicine_id=%s", medicine_id
         )
         return
+
+    if medicine.get("is_critical") and adherence_log_id:
+        schedule_critical_miss_check(adherence_log_id)
 
     send_reminder_email(
         to=email,

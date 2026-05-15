@@ -47,6 +47,10 @@ class Settings(BaseSettings):
         "FROM_EMAIL",
         "FRONTEND_URL",
         "BACKEND_URL",
+        "TWILIO_ACCOUNT_SID",
+        "TWILIO_AUTH_TOKEN",
+        "TWILIO_PHONE_NUMBER",
+        "CALL_PROVIDER",
         mode="before",
     )
     @classmethod
