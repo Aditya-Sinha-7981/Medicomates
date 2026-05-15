@@ -5,6 +5,7 @@ import { Modal } from "../components/ui/Modal";
 import { useToast } from "../components/ui/ToastContext";
 import { getCurrentUser } from "../utils/auth";
 import { api, endpoints } from "../services/api.js";
+import CriticalBadge from "../components/CriticalBadge";
 import InsightCard from "../components/InsightCard";
 import VisitTimeline from "../components/VisitTimeline";
 import NoteThread from "../components/NoteThread";
@@ -132,9 +133,12 @@ export default function PatientProfile() {
                     className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">
-                        {medicine.name}{" "}
-                        <span className="font-normal text-slate-500">{medicine.dosage}</span>
+                      <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-800">
+                        <span>
+                          {medicine.name}{" "}
+                          <span className="font-normal text-slate-500">{medicine.dosage}</span>
+                        </span>
+                        <CriticalBadge show={medicine.is_critical} />
                       </p>
                       <p className="text-xs text-slate-500">
                         {medicine.frequency} • {(medicine.reminder_times || []).join(", ")}

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Sparkles, HeartPulse, Flame } from "lucide-react";
 import { motion } from "framer-motion";
 import AppShell from "../components/layout/AppShell";
+import CriticalBadge from "../components/CriticalBadge";
 import AdherenceCalendar from "../components/AdherenceCalendar";
 import InsightCard from "../components/InsightCard";
 import VisitTimeline from "../components/VisitTimeline";
@@ -187,7 +188,10 @@ export default function ReviewerView() {
                 {dashboard?.todays_medicines?.length > 0 ? (
                   dashboard.todays_medicines.map((med) => (
                     <div key={med.medicine_id} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-                      <p className="font-semibold text-slate-800">{med.name}</p>
+                      <p className="flex flex-wrap items-center gap-2 font-semibold text-slate-800">
+                        {med.name}
+                        <CriticalBadge show={med.is_critical} />
+                      </p>
                       <p className="text-xs text-slate-500">{med.dosage}</p>
                       {med.supply_warning && med.supply_restock_message ? (
                         <p className="mt-1 text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1">

@@ -1,5 +1,6 @@
 import { CheckCircle2, Clock3, Pill, Undo2 } from "lucide-react";
 import { motion } from "framer-motion";
+import CriticalBadge from "./CriticalBadge";
 
 const STATUS_STYLES = {
   taken: {
@@ -30,7 +31,11 @@ export default function MedicineCard({
 
   return (
     <motion.article
-      className="group rounded-3xl border border-slate-100 bg-white/80 px-4 py-4 md:px-5 md:py-4 shadow-[0_18px_45px_rgba(15,23,42,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_55px_rgba(15,23,42,0.08)]"
+      className={`group rounded-3xl border bg-white/80 px-4 py-4 md:px-5 md:py-4 shadow-[0_18px_45px_rgba(15,23,42,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_55px_rgba(15,23,42,0.08)] ${
+        medicine.is_critical
+          ? "border-rose-200/80 ring-1 ring-rose-100"
+          : "border-slate-100"
+      }`}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
     >
@@ -41,10 +46,13 @@ export default function MedicineCard({
         <div className="flex-1 space-y-1">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
             <div>
-              <h3 className="text-sm md:text-base font-semibold text-slate-900">
-                {medicine.name}{" "}
-                <span className="text-slate-500 font-normal">{medicine.dosage}</span>
-              </h3>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm md:text-base font-semibold text-slate-900">
+                  {medicine.name}{" "}
+                  <span className="text-slate-500 font-normal">{medicine.dosage}</span>
+                </h3>
+                <CriticalBadge show={medicine.is_critical} />
+              </div>
               <p className="text-xs md:text-[13px] text-slate-500">
                 {medicine.frequency || "Scheduled dose"}
               </p>

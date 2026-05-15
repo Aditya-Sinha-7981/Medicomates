@@ -211,6 +211,7 @@ function mergeTodaysScheduleFromMedicines(dashboard, medicines, patientId) {
         frequency: medicine.frequency,
         reminder_times: reminderTimes,
         statuses,
+        is_critical: Boolean(medicine.is_critical),
       };
     });
 
