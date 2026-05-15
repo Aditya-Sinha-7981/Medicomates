@@ -109,7 +109,8 @@ Response 200:
     "is_active": true,
     "quantity_on_hand": 30,
     "units_per_day": 2.0,
-    "low_supply_threshold_days": 7
+    "low_supply_threshold_days": 7,
+    "is_critical": false
   }
 ]
 ```
@@ -133,9 +134,12 @@ Body:
   "doctor_id": "uuid" | null,
   "quantity_on_hand": 30,
   "units_per_day": 2.0,
-  "low_supply_threshold_days": 7
+  "low_supply_threshold_days": 7,
+  "is_critical": false
 }
 ```
+
+Optional fields: `is_critical` (boolean, default `false` when omitted). When `true`, missed doses may trigger escalated reminders (voice call — see Task 2).
 
 Optional supply fields (all nullable / omit): `quantity_on_hand` (integer pills/units left), `units_per_day` (average consumption per calendar day), `low_supply_threshold_days` (warn when estimated days of supply ≤ this; default 7 when tracking).
 

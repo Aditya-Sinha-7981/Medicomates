@@ -33,6 +33,7 @@ class MedicineSchema(BaseModel):
     quantity_on_hand: int | None = None
     units_per_day: float | None = None
     low_supply_threshold_days: int | None = Field(default=None, ge=1, le=365)
+    is_critical: bool = False
 
 
 class MedicineConfirmSchema(MedicineSchema):
@@ -55,6 +56,7 @@ class MedicineUpdateSchema(BaseModel):
     quantity_on_hand: int | None = None
     units_per_day: float | None = None
     low_supply_threshold_days: int | None = Field(default=None, ge=1, le=365)
+    is_critical: bool | None = None
 
 
 class DoctorConnectionSchema(BaseModel):
