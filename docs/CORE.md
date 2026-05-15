@@ -1,4 +1,4 @@
-# 🏥 Intelligent Medication Adherence & Monitoring System — CORE BUILD
+ # 🏥 Intelligent Medication Adherence & Monitoring System — CORE BUILD
 ### The non-negotiable foundation. Everything here must work perfectly before touching EXTRAS.md.
 
 ---
