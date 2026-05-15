@@ -234,7 +234,11 @@ export default function ReviewerView() {
 
           <div className="flex flex-col gap-5 lg:col-span-4 xl:col-span-4">
             <section className="rounded-3xl border border-slate-100 bg-white/80 p-4 md:p-5 shadow-sm">
-              <AdherenceCalendar logs={dashboard?.adherence_logs || []} medicines={medicines} />
+              <AdherenceCalendar
+                logs={dashboard?.adherence_logs || []}
+                medicines={medicines}
+                todaysMedicines={dashboard?.todays_medicines}
+              />
             </section>
 
             <InsightCard patientId={patientId} />

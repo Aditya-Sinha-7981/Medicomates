@@ -217,3 +217,77 @@ export function dedupeAdherenceLogsForPatient(
 export function todayYmdInSchedulerTz(now = new Date(), ianaTimeZone = SCHEDULER_IANA) {
   return schedulerDateKeyFromIso(now.toISOString(), ianaTimeZone);
 }
+
+/** Offset (ms) between UTC instant and its wall-clock parts in `ianaTimeZone`. */
+function timeZoneOffsetMs(instantMs, ianaTimeZone) {
+  const p = zonedParts(instantMs, ianaTimeZone);
+  const wallAsUtc = Date.UTC(p.y, p.mo - 1, p.day, p.h, p.mi, p.sec);
+  return wallAsUtc - instantMs;
+}
+
+/**
+ * UTC ISO for a dose at `hm` on scheduler-local `dateYmd` (same instant as backend dashboard).
+ */
+export function scheduledIsoForSchedulerSlot(dateYmd, hm, ianaTimeZone = SCHEDULER_IANA) {
+  const [y, mo, d] = String(dateYmd).split("-").map(Number);
+  const [hour, minute] = String(hm).trim().split(":").map(Number);
+  if (![y, mo, d, hour, minute].every(Number.isFinite)) return null;
+
+  const probe = Date.UTC(y, mo - 1, d, hour, minute, 0);
+  let instant = probe - timeZoneOffsetMs(probe, ianaTimeZone);
+
+  const p = zonedParts(instant, ianaTimeZone);
+  if (p.y !== y || p.mo !== mo || p.day !== d || p.h !== hour || p.mi !== minute) {
+    instant = probe - timeZoneOffsetMs(instant, ianaTimeZone);
+  }
+  return new Date(instant).toISOString();
+}
+
+/**
+ * Fill today's calendar slots from `todaysMedicines` when scheduler rows are not in DB yet
+ * (dashboard already shows missed/pending from reminder_times; dots were grey until first mark).
+ */
+export function appendSyntheticTodayAdherenceLogs(
+  logs,
+  todaysMedicines,
+  medicines,
+  patientId = null,
+  ianaTimeZone = SCHEDULER_IANA
+) {
+  const list = Array.isArray(logs) ? logs : [];
+  const todayKey = todayYmdInSchedulerTz(new Date(), ianaTimeZone);
+  const existingKeys = new Set(
+    dedupeAdherenceLogsForPatient(list, medicines, ianaTimeZone)
+      .map((log) => dedupeSlotKeyFromLog(log, medicines, ianaTimeZone))
+      .filter(Boolean)
+  );
+
+  const synthetics = [];
+  for (const med of todaysMedicines || []) {
+    const medicineId = med.medicine_id ?? med.id;
+    if (medicineId == null || medicineId === "") continue;
+
+    for (const slot of med.statuses || []) {
+      const hm = slot?.time;
+      if (!hm) continue;
+
+      const scheduled_time = scheduledIsoForSchedulerSlot(todayKey, hm, ianaTimeZone);
+      if (!scheduled_time) continue;
+
+      const stub = {
+        id: `synthetic-${medicineId}-${hm}`,
+        medicine_id: medicineId,
+        patient_id: patientId,
+        scheduled_time,
+        status: slot.status,
+        confirmed_at: slot.confirmed_at ?? null,
+      };
+      const key = dedupeSlotKeyFromLog(stub, medicines, ianaTimeZone);
+      if (!key || existingKeys.has(key)) continue;
+      existingKeys.add(key);
+      synthetics.push(stub);
+    }
+  }
+
+  return synthetics.length ? [...list, ...synthetics] : list;
+}
