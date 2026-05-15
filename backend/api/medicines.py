@@ -115,6 +115,7 @@ async def _save_medicine(data: MedicineSchema, rxcui: str | None) -> dict:
         "quantity_on_hand": data.quantity_on_hand,
         "units_per_day": data.units_per_day,
         "low_supply_threshold_days": data.low_supply_threshold_days,
+        "is_critical": data.is_critical,
     }
     created = supabase.table("medicines").insert(payload).execute()
     medicine = (created.data or [{}])[0]
