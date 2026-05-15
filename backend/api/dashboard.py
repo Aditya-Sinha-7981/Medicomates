@@ -18,7 +18,7 @@ _DASHBOARD_LOG_COLUMNS = "id, medicine_id, patient_id, scheduled_time, confirmed
 _DOCTOR_LIST_LOG_COLUMNS = ADHERENCE_WINDOW_COLUMNS
 _DASHBOARD_MEDICINE_COLUMNS = (
     "id, name, dosage, reminder_times, quantity_on_hand, units_per_day, "
-    "low_supply_threshold_days, patient_id"
+    "low_supply_threshold_days, patient_id, is_critical"
 )
 _REVIEWER_30D_LOG_COLUMNS = (
     "id, medicine_id, patient_id, scheduled_time, confirmed_at, medicines(name)"
@@ -201,6 +201,7 @@ async def get_patient_dashboard(patient_id: str, current_user: dict = Depends(ge
                 "dosage": med["dosage"],
                 "reminder_times": med.get("reminder_times", []),
                 "statuses": sorted(statuses, key=lambda x: x["time"]),
+                "is_critical": bool(med.get("is_critical")),
                 **_supply_meta(med),
             }
         )
@@ -403,6 +404,7 @@ async def get_reviewer_dashboard(patient_id: str, current_user: dict = Depends(g
                 "dosage": med["dosage"],
                 "reminder_times": med.get("reminder_times", []),
                 "statuses": sorted(statuses, key=lambda x: x["time"]),
+                "is_critical": bool(med.get("is_critical")),
                 **_supply_meta(med),
             }
         )
