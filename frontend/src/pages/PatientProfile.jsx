@@ -180,9 +180,9 @@ export default function PatientProfile() {
           <VisitTimeline visits={visits} />
 
           <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-            <h2 className="text-base font-semibold text-slate-900">Notes</h2>
+            <h2 className="text-base font-semibold text-slate-900">Chat</h2>
             <p className="mt-1 text-xs text-slate-500">
-              Use the full notes page to send replies.
+              Use the full chat page to send replies.
             </p>
             <div className="mt-3">
               <NoteThread

@@ -105,7 +105,7 @@ export default function Notes() {
       try {
         await loadThread();
       } catch (e) {
-        if (!cancelled) setError(e.message || "Failed to load notes");
+        if (!cancelled) setError(e.message || "Failed to load chat");
       }
     })();
     return () => {
@@ -154,14 +154,14 @@ export default function Notes() {
 
   if (!currentUserId) {
     return (
-      <AppShell title="Notes" subtitle="Secure async communication with your care team">
-        <p className="text-sm text-slate-600">Please sign in to use notes.</p>
+      <AppShell title="Chat" subtitle="Secure async communication with your care team">
+        <p className="text-sm text-slate-600">Please sign in to use chat.</p>
       </AppShell>
     );
   }
 
   return (
-    <AppShell title="Notes" subtitle="Secure async communication with your care team">
+    <AppShell title="Chat" subtitle="Secure async communication with your care team">
       <div className="grid gap-5 lg:grid-cols-3">
         <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm lg:col-span-1">
           <h2 className="text-sm font-semibold text-slate-900">

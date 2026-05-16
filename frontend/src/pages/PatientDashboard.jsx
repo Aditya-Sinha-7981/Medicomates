@@ -298,7 +298,7 @@ export default function PatientDashboard() {
               Urgent messages from your care team
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Unread urgent notes from your doctors. Open in Notes to reply.
+              Unread urgent messages from your doctors. Open in Chat to reply.
             </p>
             <div className="mt-4 space-y-2">
               {urgentNotes.length ? (
@@ -686,7 +686,7 @@ export default function PatientDashboard() {
                       <UserPlus2 className="h-4 w-4 text-slate-400" />
                       No connected doctors yet
                     </div>
-                    Connect with your doctor to share adherence updates and notes.
+                    Connect with your doctor to share adherence updates in chat.
                   </div>
                 )}
               </section>

@@ -146,7 +146,7 @@ export default function DoctorDashboard() {
               Urgent Patient Messages
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Unread urgent notes from your patients. Open in Notes to reply.
+              Unread urgent messages from your patients. Open in Chat to reply.
             </p>
             <div className="mt-4 space-y-2">
               {urgentNotes.length ? (
