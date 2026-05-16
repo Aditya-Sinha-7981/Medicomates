@@ -17,7 +17,6 @@ import ResetPassword from "./pages/ResetPassword";
 import ReviewerView from "./pages/ReviewerView";
 import ReviewingListPage from "./pages/ReviewingListPage";
 import { getAuthToken, getCurrentUser } from "./utils/auth";
-import IntroWrapper from "./components/layout/IntroWrapper";
 
 function ProtectedRoute({ children, requiredRole }) {
   const token = getAuthToken();
@@ -33,7 +32,7 @@ function ProtectedRoute({ children, requiredRole }) {
       />
     );
   }
-  return <IntroWrapper>{children}</IntroWrapper>;
+  return <>{children}</>;
 }
 
 export default function App() {
