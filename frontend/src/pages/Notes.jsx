@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Send } from "lucide-react";
 import AppShell from "../components/layout/AppShell";
 import { getCurrentUser } from "../utils/auth";
 import { api, endpoints } from "../services/api.js";
 import NoteThread from "../components/NoteThread";
+
+const TAB_NORMAL = "normal";
+const TAB_URGENT = "urgent";
 
 export default function Notes() {
   const [searchParams] = useSearchParams();
@@ -13,11 +16,13 @@ export default function Notes() {
   const currentUserId = currentUser?.id;
   const initialPatientId = searchParams.get("patientId") || "";
   const initialDoctorId = searchParams.get("doctorId") || "";
+  const initialTab = searchParams.get("tab") === TAB_URGENT ? TAB_URGENT : TAB_NORMAL;
 
   const [counterparts, setCounterparts] = useState([]);
   const [patientId, setPatientId] = useState(isDoctor ? initialPatientId : currentUserId || "");
   const [doctorId, setDoctorId] = useState(isDoctor ? currentUserId || initialDoctorId : "");
   const [notes, setNotes] = useState([]);
+  const [messageTab, setMessageTab] = useState(initialTab);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -41,10 +46,13 @@ export default function Notes() {
     setCounterparts(arr);
     setPatientId(currentUserId);
     setDoctorId((prev) => {
+      if (initialDoctorId && arr.some((d) => d.doctor_id === initialDoctorId)) {
+        return initialDoctorId;
+      }
       if (prev && arr.some((d) => d.doctor_id === prev)) return prev;
       return arr[0]?.doctor_id || "";
     });
-  }, [currentUserId, isDoctor]);
+  }, [currentUserId, isDoctor, initialDoctorId]);
 
   const loadThread = useCallback(async () => {
     if (!patientId || !doctorId) {
@@ -55,14 +63,17 @@ export default function Notes() {
     setNotes(Array.isArray(thread) ? thread : []);
   }, [patientId, doctorId]);
 
-  const markRead = useCallback(async () => {
-    if (!patientId || !doctorId) return;
-    try {
-      await api.put(endpoints.notes.markRead(patientId, doctorId), {});
-    } catch {
-      /* non-blocking */
-    }
-  }, [patientId, doctorId]);
+  const markRead = useCallback(
+    async (scope) => {
+      if (!patientId || !doctorId) return;
+      try {
+        await api.put(endpoints.notes.markRead(patientId, doctorId, scope), {});
+      } catch {
+        /* non-blocking */
+      }
+    },
+    [patientId, doctorId]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -93,7 +104,6 @@ export default function Notes() {
       setError("");
       try {
         await loadThread();
-        await markRead();
       } catch (e) {
         if (!cancelled) setError(e.message || "Failed to load notes");
       }
@@ -101,7 +111,25 @@ export default function Notes() {
     return () => {
       cancelled = true;
     };
-  }, [patientId, doctorId, loadThread, markRead]);
+  }, [patientId, doctorId, loadThread]);
+
+  useEffect(() => {
+    if (!patientId || !doctorId) return;
+    markRead(messageTab);
+  }, [messageTab, patientId, doctorId, markRead]);
+
+  const visibleNotes = useMemo(
+    () =>
+      notes.filter((n) =>
+        messageTab === TAB_URGENT ? Boolean(n.is_urgent) : !n.is_urgent
+      ),
+    [notes, messageTab]
+  );
+
+  const emptyLabel =
+    messageTab === TAB_URGENT
+      ? "No urgent messages yet."
+      : "No normal messages yet. Start with a quick update.";
 
   const sendNote = async () => {
     if (!text.trim() || !doctorId || !patientId) return;
@@ -112,9 +140,11 @@ export default function Notes() {
         patient_id: patientId,
         doctor_id: doctorId,
         message: text.trim(),
+        is_urgent: messageTab === TAB_URGENT,
       });
       setText("");
       await loadThread();
+      await markRead(messageTab);
     } catch (e) {
       setError(e.message || "Failed to send");
     } finally {
@@ -171,6 +201,32 @@ export default function Notes() {
 
         <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm lg:col-span-2">
           <h2 className="text-base font-semibold text-slate-900">Conversation</h2>
+
+          <div className="mt-3 flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+            <button
+              type="button"
+              onClick={() => setMessageTab(TAB_NORMAL)}
+              className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                messageTab === TAB_NORMAL
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Normal Messages
+            </button>
+            <button
+              type="button"
+              onClick={() => setMessageTab(TAB_URGENT)}
+              className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                messageTab === TAB_URGENT
+                  ? "bg-white text-rose-700 shadow-sm ring-1 ring-rose-200"
+                  : "text-slate-600 hover:text-rose-700"
+              }`}
+            >
+              Urgent Messages
+            </button>
+          </div>
+
           {error ? (
             <p className="mt-2 text-sm text-rose-600">{error}</p>
           ) : null}
@@ -179,13 +235,14 @@ export default function Notes() {
               <p className="text-sm text-slate-500">Select a conversation to view messages.</p>
             ) : (
               <NoteThread
-                notes={notes}
+                notes={visibleNotes}
                 currentRole={currentUser?.role}
                 otherPartyName={
                   counterparts.find((entry) =>
                     isDoctor ? entry.patient_id === patientId : entry.doctor_id === doctorId
                   )?.full_name
                 }
+                emptyLabel={emptyLabel}
               />
             )}
           </div>
@@ -194,7 +251,11 @@ export default function Notes() {
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Write your message..."
+              placeholder={
+                messageTab === TAB_URGENT
+                  ? "Write an urgent message…"
+                  : "Write your message..."
+              }
               disabled={!doctorId || sending}
               className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 disabled:opacity-50"
             />
@@ -202,7 +263,11 @@ export default function Notes() {
               type="button"
               onClick={sendNote}
               disabled={!doctorId || sending || !text.trim()}
-              className="inline-flex items-center gap-1 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-hover disabled:opacity-50"
+              className={`inline-flex items-center gap-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50 ${
+                messageTab === TAB_URGENT
+                  ? "bg-rose-600 hover:bg-rose-700"
+                  : "bg-brand hover:bg-brand-hover"
+              }`}
             >
               <Send className="h-4 w-4" />
               Send

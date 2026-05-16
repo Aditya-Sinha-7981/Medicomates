@@ -5,8 +5,6 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 
-from postgrest.exceptions import APIError
-
 from services.call_service import (
     build_sos_doctor_message_text,
     build_sos_doctor_twiml,
@@ -15,49 +13,14 @@ from services.call_service import (
 )
 from services.email_service import send_sos_alert_email
 from utils.supabase_client import supabase
+from utils.user_email import resolve_user_email
 
 logger = logging.getLogger(__name__)
 
 
-def _resolve_user_email(user_id: str) -> str | None:
-    """Resolve email via Supabase Auth admin, then profiles.email fallback."""
-    email: str | None = None
-    try:
-        user_response = supabase.auth.admin.get_user_by_id(user_id)
-        email = getattr(getattr(user_response, "user", None), "email", None) or None
-    except Exception as exc:
-        logger.warning(
-            "Auth admin get_user_by_id failed for user_id=%s (%s). Trying profiles.email fallback.",
-            user_id,
-            exc,
-        )
-
-    if email:
-        return email.strip() if isinstance(email, str) else None
-
-    try:
-        prof = (
-            supabase.table("profiles")
-            .select("email")
-            .eq("id", user_id)
-            .limit(1)
-            .execute()
-        )
-        rows = prof.data or []
-        raw = rows[0].get("email") if rows else None
-        if isinstance(raw, str) and raw.strip():
-            return raw.strip()
-    except APIError:
-        logger.exception("profiles.email lookup failed user_id=%s", user_id)
-    except Exception:
-        logger.exception("profiles.email lookup failed user_id=%s", user_id)
-
-    return None
-
-
 def _send_sos_email(user_id: str, role_label: str, patient_name: str, triggered_at_display: str) -> str:
     """Returns 'sent' | 'skipped' | 'failed'."""
-    email = _resolve_user_email(user_id)
+    email = resolve_user_email(user_id)
     if not email:
         logger.warning(
             "SOS email skipped — no email for %s user_id=%s",

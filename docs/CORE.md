@@ -131,6 +131,7 @@ patient_id    uuid references profiles(id)
 doctor_id     uuid references profiles(id)
 sender_role   text    -- 'patient' | 'doctor'
 message       text NOT NULL
+is_urgent     boolean DEFAULT false
 is_read       boolean DEFAULT false
 created_at    timestamptz DEFAULT now()
 ```

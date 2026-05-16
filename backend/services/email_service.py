@@ -108,3 +108,60 @@ def send_sos_alert_email(to: str, patient_name: str, triggered_at_display: str) 
 
 # Backwards-compatible alias
 send_sos_reviewer_email = send_sos_alert_email
+
+
+def build_urgent_note_email(
+    sender_name: str, message_preview: str, triggered_at_display: str
+) -> str:
+    name = (sender_name or "Care team").strip()
+    preview = (message_preview or "").strip()[:120]
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family: Arial, sans-serif; background: #fff1f2; padding: 20px;">
+      <div style="max-width: 480px; margin: auto; background: white; border-radius: 12px; padding: 32px; border: 1px solid #fda4af;">
+        <h2 style="color: #e11d48; margin-top: 0;">Urgent message</h2>
+        <p style="font-size: 18px; color: #1e293b;">
+          <strong>{name}</strong> sent you an urgent message.
+        </p>
+        <p style="font-size: 15px; color: #475569; background: #fff1f2; padding: 12px; border-radius: 8px;">
+          {preview}
+        </p>
+        <p style="font-size: 15px; color: #475569;">
+          Time: <strong>{triggered_at_display}</strong>
+        </p>
+        <p style="color:#94a3b8; margin-top:24px; font-size:13px;">
+          Open Medicomates to view and reply in your notes thread.
+        </p>
+      </div>
+    </body>
+    </html>
+    """
+
+
+def send_urgent_note_email(
+    to: str,
+    sender_name: str,
+    message_preview: str,
+    triggered_at_display: str,
+) -> bool:
+    html_content = build_urgent_note_email(sender_name, message_preview, triggered_at_display)
+    try:
+        response = resend.Emails.send(
+            {
+                "from": settings.FROM_EMAIL,
+                "to": to,
+                "subject": f"Urgent message from {sender_name}",
+                "html": html_content,
+            }
+        )
+        logger.info(
+            "Resend urgent note sent from=%s to=%s response=%s",
+            sender_name,
+            to,
+            response,
+        )
+        return True
+    except Exception:
+        logger.exception("Resend urgent note failed to=%s", to)
+        return False

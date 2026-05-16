@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
-import { HeartPulse, LogOut, Sparkles, UserPlus2, ClipboardList, Flame, CheckCircle2, XCircle, Clock, Eye, Search, Users, AlertTriangle } from "lucide-react";
+import { HeartPulse, LogOut, Sparkles, UserPlus2, ClipboardList, Flame, CheckCircle2, XCircle, Clock, Eye, Search, Users, AlertTriangle, AlertCircle } from "lucide-react";
 import { getCurrentUser } from "../utils/auth";
 import AdherenceCalendar from "../components/AdherenceCalendar";
 import MedicineCard from "../components/MedicineCard";
@@ -51,6 +51,17 @@ export default function PatientDashboard() {
   const [sosSending, setSosSending] = useState(false);
   const [sosSuccessOpen, setSosSuccessOpen] = useState(false);
   const [sosResult, setSosResult] = useState(null);
+  const [urgentNotes, setUrgentNotes] = useState([]);
+
+  useEffect(() => {
+    if (loading) return;
+    const user = getCurrentUser();
+    if (!user?.id) return;
+    api
+      .get(endpoints.notes.urgentInboxForPatient(user.id))
+      .then((data) => setUrgentNotes(Array.isArray(data) ? data : []))
+      .catch(() => setUrgentNotes([]));
+  }, [loading]);
 
   const recentVisits = useMemo(() => (visits || []).slice(0, 3), [visits]);
   const todayDoseCount = useMemo(
@@ -280,6 +291,46 @@ export default function PatientDashboard() {
               </div>
             </div>
           </motion.header>
+
+          <section className="rounded-2xl border border-rose-200 bg-gradient-to-br from-rose-50/90 to-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-rose-600" />
+              Urgent messages from your care team
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Unread urgent notes from your doctors. Open in Notes to reply.
+            </p>
+            <div className="mt-4 space-y-2">
+              {urgentNotes.length ? (
+                urgentNotes.map((note) => (
+                  <div
+                    key={note.id}
+                    className="flex flex-col gap-2 rounded-xl border border-rose-100 bg-white p-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {note.doctor_name || "Doctor"}
+                      </p>
+                      <p className="mt-0.5 text-sm text-slate-600 line-clamp-2">{note.message}</p>
+                      <p className="mt-1 text-[11px] text-slate-400">
+                        {note.created_at
+                          ? new Date(note.created_at).toLocaleString()
+                          : ""}
+                      </p>
+                    </div>
+                    <Link
+                      to={`/notes?doctorId=${note.doctor_id}&tab=urgent`}
+                      className="shrink-0 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 text-center"
+                    >
+                      Open chat
+                    </Link>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-slate-500">No urgent messages from your care team.</p>
+              )}
+            </div>
+          </section>
 
           <motion.section
             className="relative"
