@@ -86,6 +86,9 @@ export const endpoints = {
     update: (id) => `/api/documents/${id}`,
     remove: (id) => `/api/documents/${id}`,
   },
+  sos: {
+    trigger: (patientId) => `/api/sos/${patientId}`,
+  },
 };
 
 export const api = {

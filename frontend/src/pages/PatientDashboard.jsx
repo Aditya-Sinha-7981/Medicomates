@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
-import { HeartPulse, LogOut, Sparkles, UserPlus2, ClipboardList, Flame, CheckCircle2, XCircle, Clock, Eye, Search, Users } from "lucide-react";
+import { HeartPulse, LogOut, Sparkles, UserPlus2, ClipboardList, Flame, CheckCircle2, XCircle, Clock, Eye, Search, Users, AlertTriangle } from "lucide-react";
+import { getCurrentUser } from "../utils/auth";
 import AdherenceCalendar from "../components/AdherenceCalendar";
 import MedicineCard from "../components/MedicineCard";
 import useAuth from "../hooks/useAuth";
@@ -45,6 +46,11 @@ export default function PatientDashboard() {
   const [searchError, setSearchError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [sendingRequest, setSendingRequest] = useState(false);
+
+  const [sosConfirmOpen, setSosConfirmOpen] = useState(false);
+  const [sosSending, setSosSending] = useState(false);
+  const [sosSuccessOpen, setSosSuccessOpen] = useState(false);
+  const [sosResult, setSosResult] = useState(null);
 
   const recentVisits = useMemo(() => (visits || []).slice(0, 3), [visits]);
   const todayDoseCount = useMemo(
@@ -186,6 +192,28 @@ export default function PatientDashboard() {
     setUntakeTarget(null);
   };
 
+  const handleSosConfirm = async () => {
+    const user = getCurrentUser();
+    if (!user?.id) {
+      showToast({ message: "Please sign in again to send SOS.", variant: "error" });
+      return;
+    }
+    setSosSending(true);
+    try {
+      const result = await api.post(endpoints.sos.trigger(user.id), {});
+      setSosResult(result);
+      setSosConfirmOpen(false);
+      setSosSuccessOpen(true);
+    } catch (err) {
+      showToast({
+        message: err.message || "Failed to send emergency alert. Please try again.",
+        variant: "error",
+      });
+    } finally {
+      setSosSending(false);
+    }
+  };
+
   return (
     <AppReadyScreen isReady={!loading}>
     <AppShell
@@ -252,6 +280,45 @@ export default function PatientDashboard() {
               </div>
             </div>
           </motion.header>
+
+          <motion.section
+            className="relative"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+          >
+            <motion.button
+              type="button"
+              onClick={() => setSosConfirmOpen(true)}
+              className="group relative w-full overflow-hidden rounded-[28px] border-2 border-rose-400/80 bg-gradient-to-br from-rose-600 via-rose-700 to-red-800 px-6 py-6 text-left text-white shadow-[0_20px_50px_rgba(220,38,38,0.45)] transition-transform hover:scale-[1.01] active:scale-[0.99] focus:outline-none focus-visible:ring-4 focus-visible:ring-rose-300/60 md:px-8 md:py-7"
+              aria-label="Emergency SOS — tap for immediate caregiver and doctor alert"
+            >
+              <span
+                className="pointer-events-none absolute inset-0 rounded-[26px] ring-2 ring-rose-300/50 animate-pulse"
+                aria-hidden
+              />
+              <span
+                className="pointer-events-none absolute -inset-1 rounded-[30px] bg-rose-500/20 blur-xl animate-pulse"
+                aria-hidden
+              />
+              <motion.div className="relative z-10 flex items-center gap-4 md:gap-5">
+                <motion.div className="flex h-14 w-14 md:h-16 md:w-16 shrink-0 items-center justify-center rounded-2xl border border-white/30 bg-white/15 backdrop-blur-sm">
+                  <AlertTriangle className="h-8 w-8 md:h-9 md:w-9 text-white" strokeWidth={2.25} />
+                </motion.div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-100/95">
+                    Emergency
+                  </p>
+                  <h2 className="mt-0.5 text-2xl md:text-3xl font-bold tracking-tight">
+                    Emergency SOS
+                  </h2>
+                  <p className="mt-1.5 text-sm md:text-base text-rose-50/95 font-medium">
+                    Tap for immediate caregiver and doctor alert
+                  </p>
+                </div>
+              </motion.div>
+            </motion.button>
+          </motion.section>
 
           <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <motion.div
@@ -699,6 +766,105 @@ export default function PatientDashboard() {
             className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 disabled:opacity-60"
           >
             {isCancelling ? "Cancelling..." : "Cancel medicine"}
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={sosConfirmOpen}
+        onClose={() => !sosSending && setSosConfirmOpen(false)}
+        title="Send emergency SOS?"
+        size="lg"
+      >
+        <p className="text-sm text-slate-600">
+          This will immediately:
+        </p>
+        <ul className="mt-3 space-y-2 text-sm text-slate-700 list-disc pl-5">
+          <li>notify your reviewers by email</li>
+          <li>notify your connected doctor{doctors?.length !== 1 ? "s" : ""} by email</li>
+          <li>call your connected doctor{doctors?.length !== 1 ? "s" : ""}</li>
+        </ul>
+        <p className="mt-4 text-xs text-slate-500">
+          Only use this in a genuine emergency. Your care network will be alerted right away.
+        </p>
+        <motion.div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={() => setSosConfirmOpen(false)}
+            disabled={sosSending}
+            className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSosConfirm}
+            disabled={sosSending}
+            className="rounded-full bg-rose-600 px-6 py-3 text-sm font-bold uppercase tracking-wide text-white shadow-lg shadow-rose-600/30 hover:bg-rose-700 disabled:opacity-60 sm:min-w-[200px]"
+          >
+            {sosSending ? "Sending…" : "YES, SEND SOS"}
+          </button>
+        </motion.div>
+      </Modal>
+
+      <Modal
+        open={sosSuccessOpen}
+        onClose={() => {
+          setSosSuccessOpen(false);
+          setSosResult(null);
+        }}
+        title="Emergency alert sent"
+        size="lg"
+      >
+        <p className="text-sm text-slate-600">
+          Emergency alert sent successfully.
+        </p>
+        <ul className="mt-3 space-y-2 text-sm text-slate-700">
+          <li className="flex items-start gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+            <span>
+              Doctor{((sosResult?.doctors?.called ?? 0) !== 1) ? "s are" : " is"} being called
+              {(sosResult?.doctors?.called ?? 0) > 0
+                ? ` (${sosResult.doctors.called} call${sosResult.doctors.called !== 1 ? "s" : ""})`
+                : ""}
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+            <span>
+              Care team emailed
+              {((sosResult?.doctors?.emailed ?? 0) + (sosResult?.reviewers?.notified ?? 0)) > 0
+                ? ` (${(sosResult?.doctors?.emailed ?? 0) + (sosResult?.reviewers?.notified ?? 0)} total)`
+                : ""}
+            </span>
+          </li>
+          {(sosResult?.reviewers?.notified ?? 0) > 0 ? (
+            <li className="flex items-start gap-2 text-slate-600 text-xs pl-6">
+              <span>
+                Reviewers: {sosResult.reviewers.notified} email
+                {sosResult.reviewers.notified !== 1 ? "s" : ""}
+              </span>
+            </li>
+          ) : null}
+          {(sosResult?.doctors?.emailed ?? 0) > 0 ? (
+            <li className="flex items-start gap-2 text-slate-600 text-xs pl-6">
+              <span>
+                Doctors: {sosResult.doctors.emailed} email
+                {sosResult.doctors.emailed !== 1 ? "s" : ""}
+              </span>
+            </li>
+          ) : null}
+        </ul>
+        <div className="mt-6 flex justify-end">
+          <button
+            type="button"
+            onClick={() => {
+              setSosSuccessOpen(false);
+              setSosResult(null);
+            }}
+            className="rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-hover"
+          >
+            Done
           </button>
         </div>
       </Modal>
