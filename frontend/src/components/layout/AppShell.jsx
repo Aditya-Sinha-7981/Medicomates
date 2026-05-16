@@ -13,7 +13,7 @@ function navItemsForUser() {
     return [
       { to: "/doctor", label: "Dashboard", icon: Home, end: true },
       { to: "/doctor/patients", label: "Patients", icon: Users },
-      { to: "/notes", label: "Notes", icon: MessageCircle },
+      { to: "/notes", label: "Chats", icon: MessageCircle },
       { to: "/profile", label: "Profile", icon: UserCircle2 },
     ];
   }
@@ -24,7 +24,7 @@ function navItemsForUser() {
       { to: "/medical-reports", label: "Reports", icon: FileText },
       { to: "/reviewing", label: "Reviewing", icon: Eye },
       { to: "/medicines", label: "Medicines", icon: Pill },
-      { to: "/notes", label: "Notes", icon: MessageCircle },
+      { to: "/notes", label: "Chats", icon: MessageCircle },
       { to: "/profile", label: "Profile", icon: UserCircle2 },
     ];
   }
