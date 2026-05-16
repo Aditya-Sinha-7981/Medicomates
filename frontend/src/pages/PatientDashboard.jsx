@@ -11,6 +11,7 @@ import { api, endpoints } from "../services/api.js";
 import { Modal } from "../components/ui/Modal";
 import { useToast } from "../components/ui/ToastContext";
 import AppShell from "../components/layout/AppShell";
+import AppReadyScreen from "../components/layout/AppReadyScreen";
 import { ADHERENCE_ATTENTION_THRESHOLD } from "../utils/adherenceThreshold";
 
 export default function PatientDashboard() {
@@ -79,24 +80,7 @@ export default function PatientDashboard() {
 
   const reviewingPreview = useMemo(() => reviewingSorted.slice(0, 4), [reviewingSorted]);
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto flex h-full max-w-7xl flex-col gap-6 p-4 md:p-8">
-          <div className="h-36 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200 animate-pulse" />
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="h-24 rounded-3xl bg-slate-100 animate-pulse" />
-            <div className="h-24 rounded-3xl bg-slate-100 animate-pulse" />
-            <div className="h-24 rounded-3xl bg-slate-100 animate-pulse" />
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="h-64 rounded-3xl bg-slate-100 animate-pulse md:col-span-2" />
-            <div className="h-64 rounded-3xl bg-slate-100 animate-pulse" />
-          </div>
-        </div>
-      </main>
-    );
-  }
+
 
   if (error) {
     return (
@@ -203,6 +187,7 @@ export default function PatientDashboard() {
   };
 
   return (
+    <AppReadyScreen isReady={!loading}>
     <AppShell
       title="Patient Dashboard"
       subtitle={todayLabel}
@@ -748,5 +733,6 @@ export default function PatientDashboard() {
         </div>
       </Modal>
     </AppShell>
+    </AppReadyScreen>
   );
 }

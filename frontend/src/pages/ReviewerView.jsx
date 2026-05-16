@@ -10,6 +10,7 @@ import VisitTimeline from "../components/VisitTimeline";
 import { api, endpoints } from "../services/api.js";
 import { format } from "date-fns";
 import { ADHERENCE_ATTENTION_THRESHOLD } from "../utils/adherenceThreshold";
+import AppReadyScreen from "../components/layout/AppReadyScreen";
 
 export default function ReviewerView() {
   const { patientId } = useParams();
@@ -59,19 +60,7 @@ export default function ReviewerView() {
   const weeklyPct = useMemo(() => Number(dashboard?.weekly_percentage ?? 0), [dashboard?.weekly_percentage]);
   const weeklyNeedsAttention = weeklyPct < ADHERENCE_ATTENTION_THRESHOLD;
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto flex h-full max-w-7xl flex-col gap-6 p-4 md:p-8">
-          <div className="h-36 rounded-3xl bg-slate-200 animate-pulse" />
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-             <div className="h-24 rounded-3xl bg-slate-200 animate-pulse" />
-             <div className="h-24 rounded-3xl bg-slate-200 animate-pulse" />
-          </div>
-        </div>
-      </main>
-    );
-  }
+
 
   if (error) {
     return (
@@ -90,6 +79,7 @@ export default function ReviewerView() {
   const initials = dashboard?.profile?.full_name?.split(" ").map((p) => p.charAt(0)).slice(0, 2).join("") || "PT";
 
   return (
+    <AppReadyScreen isReady={!loading}>
     <AppShell
       title="Reviewer View"
       subtitle="Read-only access"
@@ -251,5 +241,6 @@ export default function ReviewerView() {
         </div>
       </div>
     </AppShell>
+    </AppReadyScreen>
   );
 }

@@ -9,6 +9,7 @@ import CriticalBadge from "../components/CriticalBadge";
 import InsightCard from "../components/InsightCard";
 import VisitTimeline from "../components/VisitTimeline";
 import NoteThread from "../components/NoteThread";
+import AppReadyScreen from "../components/layout/AppReadyScreen";
 
 export default function PatientProfile() {
   const navigate = useNavigate();
@@ -80,10 +81,9 @@ export default function PatientProfile() {
   };
 
   return (
+    <AppReadyScreen isReady={!loading}>
     <AppShell title="Patient Profile" subtitle="Medication and adherence summary">
-      {loading ? (
-        <p className="text-sm text-slate-500">Loading patient profile...</p>
-      ) : error ? (
+      {error ? (
         <p className="text-sm text-rose-600">{error}</p>
       ) : (
         <div className="space-y-5">
@@ -218,5 +218,6 @@ export default function PatientProfile() {
         </div>
       </Modal>
     </AppShell>
+    </AppReadyScreen>
   );
 }
