@@ -3,12 +3,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Sparkles, HeartPulse, Flame } from "lucide-react";
 import { motion } from "framer-motion";
 import AppShell from "../components/layout/AppShell";
+import CriticalBadge from "../components/CriticalBadge";
 import AdherenceCalendar from "../components/AdherenceCalendar";
 import InsightCard from "../components/InsightCard";
 import VisitTimeline from "../components/VisitTimeline";
 import { api, endpoints } from "../services/api.js";
 import { format } from "date-fns";
 import { ADHERENCE_ATTENTION_THRESHOLD } from "../utils/adherenceThreshold";
+import AppReadyScreen from "../components/layout/AppReadyScreen";
 
 export default function ReviewerView() {
   const { patientId } = useParams();
@@ -58,19 +60,7 @@ export default function ReviewerView() {
   const weeklyPct = useMemo(() => Number(dashboard?.weekly_percentage ?? 0), [dashboard?.weekly_percentage]);
   const weeklyNeedsAttention = weeklyPct < ADHERENCE_ATTENTION_THRESHOLD;
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto flex h-full max-w-7xl flex-col gap-6 p-4 md:p-8">
-          <div className="h-36 rounded-3xl bg-slate-200 animate-pulse" />
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-             <div className="h-24 rounded-3xl bg-slate-200 animate-pulse" />
-             <div className="h-24 rounded-3xl bg-slate-200 animate-pulse" />
-          </div>
-        </div>
-      </main>
-    );
-  }
+
 
   if (error) {
     return (
@@ -89,6 +79,7 @@ export default function ReviewerView() {
   const initials = dashboard?.profile?.full_name?.split(" ").map((p) => p.charAt(0)).slice(0, 2).join("") || "PT";
 
   return (
+    <AppReadyScreen isReady={!loading}>
     <AppShell
       title="Reviewer View"
       subtitle="Read-only access"
@@ -187,7 +178,10 @@ export default function ReviewerView() {
                 {dashboard?.todays_medicines?.length > 0 ? (
                   dashboard.todays_medicines.map((med) => (
                     <div key={med.medicine_id} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-                      <p className="font-semibold text-slate-800">{med.name}</p>
+                      <p className="flex flex-wrap items-center gap-2 font-semibold text-slate-800">
+                        {med.name}
+                        <CriticalBadge show={med.is_critical} />
+                      </p>
                       <p className="text-xs text-slate-500">{med.dosage}</p>
                       {med.supply_warning && med.supply_restock_message ? (
                         <p className="mt-1 text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1">
@@ -230,7 +224,11 @@ export default function ReviewerView() {
 
           <div className="flex flex-col gap-5 lg:col-span-4 xl:col-span-4">
             <section className="rounded-3xl border border-slate-100 bg-white/80 p-4 md:p-5 shadow-sm">
-              <AdherenceCalendar logs={dashboard?.adherence_logs || []} medicines={medicines} />
+              <AdherenceCalendar
+                logs={dashboard?.adherence_logs || []}
+                medicines={medicines}
+                todaysMedicines={dashboard?.todays_medicines}
+              />
             </section>
 
             <InsightCard patientId={patientId} />
@@ -243,5 +241,6 @@ export default function ReviewerView() {
         </div>
       </div>
     </AppShell>
+    </AppReadyScreen>
   );
 }

@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { dedupeAdherenceLogsForPatient } from "../utils/schedulerTime.js";
+import {
+  appendSyntheticTodayAdherenceLogs,
+  dedupeAdherenceLogsForPatient,
+} from "../utils/schedulerTime.js";
 
 const STATUS_COLORS = {
   taken: "bg-emerald-500/80 hover:bg-emerald-500",
@@ -89,14 +92,18 @@ function formatScheduledDoseLine(total) {
   return total === 1 ? "1 dose scheduled" : `${total} doses scheduled`;
 }
 
-export default function AdherenceCalendar({ logs = [], medicines = [] }) {
+export default function AdherenceCalendar({
+  logs = [],
+  medicines = [],
+  todaysMedicines = [],
+}) {
   const days = utcCalendarDays(30);
   const todayKey = utcTodayKey();
 
-  const normalizedLogs = useMemo(
-    () => dedupeAdherenceLogsForPatient(logs, medicines),
-    [logs, medicines]
-  );
+  const normalizedLogs = useMemo(() => {
+    const withToday = appendSyntheticTodayAdherenceLogs(logs, todaysMedicines, medicines);
+    return dedupeAdherenceLogsForPatient(withToday, medicines);
+  }, [logs, todaysMedicines, medicines]);
 
   const logsByDay = useMemo(() => {
     return normalizedLogs.reduce((map, log) => {

@@ -5,6 +5,7 @@ import AppShell from "../components/layout/AppShell";
 import { getCurrentUser, logout } from "../utils/auth";
 import { api, endpoints } from "../services/api.js";
 import PatientListCard from "../components/PatientListCard";
+import AppReadyScreen from "../components/layout/AppReadyScreen";
 
 export default function DoctorDashboard() {
   const user = getCurrentUser();
@@ -114,6 +115,7 @@ export default function DoctorDashboard() {
   if (!user || user.role !== "doctor") return null;
 
   return (
+    <AppReadyScreen isReady={!loading}>
     <AppShell title="Doctor Panel" subtitle="Patient adherence overview">
       
       {/* Top Banner with Sign Out Button */}
@@ -159,11 +161,7 @@ export default function DoctorDashboard() {
             
             {error ? <p className="mt-4 text-sm text-rose-600">{error}</p> : null}
             
-            {loading ? (
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500 text-center animate-pulse">
-                Loading patient data...
-              </div>
-            ) : patients.length ? (
+            {patients.length ? (
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {previewPatients.map((patient, index) => (
                   <PatientListCard key={patient.patient_id} patient={patient} index={index} />
@@ -263,5 +261,6 @@ export default function DoctorDashboard() {
         </div>
       </div>
     </AppShell>
+    </AppReadyScreen>
   );
 }
