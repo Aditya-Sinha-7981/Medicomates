@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, UserPlus2, Clock } from "lucide-react";
+import { Search, UserPlus2, Clock, AlertCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import AppShell from "../components/layout/AppShell";
 import { getCurrentUser, logout } from "../utils/auth";
@@ -21,6 +21,7 @@ export default function DoctorDashboard() {
   
   const [outgoingRequests, setOutgoingRequests] = useState([]);
   const [sendingRequest, setSendingRequest] = useState(false);
+  const [urgentNotes, setUrgentNotes] = useState([]);
 
   // 1. Authentication & Role Check Guard
   useEffect(() => {
@@ -40,12 +41,14 @@ export default function DoctorDashboard() {
     setLoading(true);
     setError("");
     try {
-      const [dashboard, outgoing] = await Promise.all([
+      const [dashboard, outgoing, urgent] = await Promise.all([
         api.get(endpoints.dashboard.doctor(user.id)),
-        api.get(endpoints.connections.outgoingRequests())
+        api.get(endpoints.connections.outgoingRequests()),
+        api.get(endpoints.notes.urgentInboxForDoctor(user.id)).catch(() => []),
       ]);
       setPatients(Array.isArray(dashboard?.patients) ? dashboard.patients : []);
       setOutgoingRequests(Array.isArray(outgoing) ? outgoing : []);
+      setUrgentNotes(Array.isArray(urgent) ? urgent : []);
     } catch (err) {
       setError(err.message || "Failed to load doctor dashboard.");
       if (err.message.includes("401") || err.message.includes("403")) {
@@ -137,6 +140,54 @@ export default function DoctorDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          <section className="rounded-2xl border border-rose-200 bg-gradient-to-br from-rose-50/80 to-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-rose-600" />
+              Urgent Patient Messages
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Unread urgent messages from your patients. Open in Chat to reply.
+            </p>
+            <div className="mt-4 space-y-2">
+              {urgentNotes.length ? (
+                urgentNotes.map((note) => (
+                  <div
+                    key={note.id}
+                    className="flex flex-col gap-2 rounded-xl border border-rose-100 bg-white p-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900">
+                        {note.patient_name || "Patient"}
+                      </p>
+                      <p className="mt-0.5 text-sm text-slate-600 line-clamp-2">{note.message}</p>
+                      <p className="mt-1 text-[11px] text-slate-400">
+                        {note.created_at
+                          ? new Date(note.created_at).toLocaleString()
+                          : ""}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                      <Link
+                        to={`/notes?patientId=${note.patient_id}&tab=urgent`}
+                        className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700"
+                      >
+                        Open chat
+                      </Link>
+                      <Link
+                        to={`/patient/${note.patient_id}`}
+                        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Profile
+                      </Link>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-slate-500">No urgent messages right now.</p>
+              )}
+            </div>
+          </section>
+
           <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-lg font-semibold text-slate-900">Recent patients</h2>

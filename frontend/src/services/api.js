@@ -73,7 +73,12 @@ export const endpoints = {
   notes: {
     thread: (patientId, doctorId) => `/api/notes/${patientId}/${doctorId}`,
     create: () => "/api/notes",
-    markRead: (patientId, doctorId) => `/api/notes/read/${patientId}/${doctorId}`,
+    markRead: (patientId, doctorId, scope) => {
+      const base = `/api/notes/read/${patientId}/${doctorId}`;
+      return scope ? `${base}?scope=${encodeURIComponent(scope)}` : base;
+    },
+    urgentInboxForDoctor: (doctorId) => `/api/notes/urgent/doctor/${doctorId}`,
+    urgentInboxForPatient: (patientId) => `/api/notes/urgent/patient/${patientId}`,
   },
   visits: {
     list: (patientId) => `/api/visits/${patientId}`,
@@ -85,6 +90,9 @@ export const endpoints = {
     patient: (patientId) => `/api/documents/patient/${patientId}`,
     update: (id) => `/api/documents/${id}`,
     remove: (id) => `/api/documents/${id}`,
+  },
+  sos: {
+    trigger: (patientId) => `/api/sos/${patientId}`,
   },
 };
 

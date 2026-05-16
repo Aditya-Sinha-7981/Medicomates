@@ -164,13 +164,43 @@ async def mock_add_reviewer(body: dict):
 
 
 # NOTES
+@app.get("/api/notes/urgent/doctor/{doctor_id}")
+async def mock_urgent_doctor(doctor_id: str):
+    return [
+        {
+            "id": "note-urgent-001",
+            "patient_id": "mock-patient-uuid-001",
+            "doctor_id": doctor_id,
+            "message": "Feeling worse since yesterday evening.",
+            "created_at": "2025-04-10T18:00:00Z",
+            "patient_name": "Ramesh Kumar",
+        }
+    ]
+
+
+@app.get("/api/notes/urgent/patient/{patient_id}")
+async def mock_urgent_patient(patient_id: str):
+    return [
+        {
+            "id": "note-urgent-002",
+            "patient_id": patient_id,
+            "doctor_id": "doc-001",
+            "message": "Please adjust your evening dose timing.",
+            "created_at": "2025-04-10T17:00:00Z",
+            "doctor_name": "Dr. Sharma",
+        }
+    ]
+
+
 @app.get("/api/notes/{patient_id}/{doctor_id}")
 async def mock_notes(patient_id: str, doctor_id: str):
     return [
         {"id": "note-001", "sender_role": "patient", "message": "Should I continue after 30 days?",
-         "is_read": True, "created_at": "2025-04-10T14:30:00Z"},
+         "is_urgent": False, "is_read": True, "created_at": "2025-04-10T14:30:00Z"},
         {"id": "note-002", "sender_role": "doctor", "message": "Yes, continue until next visit.",
-         "is_read": True, "created_at": "2025-04-10T16:00:00Z"}
+         "is_urgent": False, "is_read": True, "created_at": "2025-04-10T16:00:00Z"},
+        {"id": "note-003", "sender_role": "patient", "message": "Chest tightness since morning.",
+         "is_urgent": True, "is_read": False, "created_at": "2025-04-10T18:00:00Z"},
     ]
 
 @app.post("/api/notes")

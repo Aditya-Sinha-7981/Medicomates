@@ -629,7 +629,8 @@ Body:
 {
   "patient_id": "uuid",
   "doctor_id": "uuid",
-  "message": "string"
+  "message": "string",
+  "is_urgent": false
 }
 
 Response 200:
@@ -650,16 +651,37 @@ Response 200:
     "id": "uuid",
     "sender_role": "patient" | "doctor",
     "message": "Should I continue after 30 days?",
+    "is_urgent": false,
     "is_read": false,
     "created_at": "2025-04-10T14:30:00Z"
   }
 ]
 ```
 
+### Urgent inbox (doctor)
+```
+GET /api/notes/urgent/doctor/{doctor_id}
+[Protected — doctor only, own id]
+
+Returns unread urgent notes from patients (is_urgent=true, is_read=false, sender_role=patient).
+Response 200: [{ "id", "patient_id", "doctor_id", "message", "created_at", "patient_name" }]
+```
+
+### Urgent inbox (patient)
+```
+GET /api/notes/urgent/patient/{patient_id}
+[Protected — patient only, own id]
+
+Returns unread urgent notes from doctors (is_urgent=true, is_read=false, sender_role=doctor).
+Response 200: [{ "id", "patient_id", "doctor_id", "message", "created_at", "doctor_name" }]
+```
+
 ### Mark notes as read
 ```
-PUT /api/notes/read/{patient_id}/{doctor_id}
+PUT /api/notes/read/{patient_id}/{doctor_id}?scope=normal|urgent
 [Protected]
+
+Marks incoming messages for the current user as read. Optional scope limits to normal or urgent only.
 
 Response 200:
 {
