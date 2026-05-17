@@ -23,7 +23,6 @@ Thumbs.db
 .idea/
 
 #Logs
-logs/
 .cursor/
 
 #sql
