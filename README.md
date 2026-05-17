@@ -130,3 +130,25 @@ Run specific files as needed (see `backend/test_*.py`).
 
 - Start with [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md).
 - For a **narrated walkthrough** of modules, pitfalls, and design tradeoffs, see [`logs/CODEBASE_AND_CHALLENGES.md`](logs/CODEBASE_AND_CHALLENGES.md) (written for teammates and AI context).
+
+---
+
+## Conclusion
+- This project was built for the BGI Hackathon 2026, Indore.
+- The project was based on the problem statement IT4P1: Intelligent Medication Adherence & Monitoring System. I tried adhering (pun intended), to the problem statement as closely as possible within the limited time I had.
+- The main goal behind this project was scalability, modularity, and ease of access, especially for elderly patients who are usually ignored by overly complicated apps.
+- During the hackathon, I was asked to add features like:
+
+    - Critical medicine dose categorization
+    - Call reminders for critical medicines
+    - Separate chat categories
+    - SOS support for patients
+
+- All of these were implemented without major issues because the architecture was designed from the beginning to support future changes without breaking existing systems.
+- In the end, the project received a consolation prize, marking yet another failed attempt at a hackathon for me.
+
+- Still, regardless of the result, this project taught me a lot about building scalable systems under pressure, designing flexible architectures, and shipping features quickly without completely destroying the codebase in the process.
+
+<br>
+
+- I honestly do not know whether I will participate in another hackathon or not. Let's see where this leads.
